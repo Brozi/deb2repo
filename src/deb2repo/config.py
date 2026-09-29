@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    github_token: str | None = None
     gpg_key_id: str
     repo_origin: str = "My Custom Repo"
     base_repo_path: str = "/app/repo"
