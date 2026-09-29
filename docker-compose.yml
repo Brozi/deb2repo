@@ -1,0 +1,22 @@
+services:
+  deb-orchestrator:
+    build: .
+    container_name: deb-orchestrator
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8889:8000" # Expose FastAPI admin interface
+    volumes:
+      - ./state:/app/state # Persistent SQLite database
+      - ./public_repo:/app/public_repo # The target Debian repository
+      - ~/.gnupg:/root/.gnupg # Bind the host's GPG keychain
+
+  repo-server:
+    image: nginx:alpine
+    container_name: repo-server
+    restart: unless-stopped
+    ports:
+      - "8888:80" # Expose the APT repository to clients
+    volumes:
+      - ./public_repo:/usr/share/nginx/html:ro # Read-only access for Nginx
