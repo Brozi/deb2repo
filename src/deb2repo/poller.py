@@ -51,12 +51,12 @@ def filter_assets(release_data: dict[str, str], target_distro: str) -> list[str]
         return assets
 
 
-def get_latest_tag(host: str, owner: str, repo: str) -> str | None:
-    base_url = f"https://{host}.com/{owner}/{repo}/releases.atom"
+def get_latest_tag(host: str, owner: str, name: str) -> str | None:
+    base_url = f"https://{host}.com/{owner}/{name}/releases.atom"
     feed = feedparser.parse(base_url)
 
     if not feed.entries:
-        print(f"No releases found for {host}/{owner}/{repo}")
+        print(f"No releases found for {host}/{owner}/{name}")
         return
     latest_entry = feed.entries[0]
     tag = latest_entry["link"].split("/")[-1]
