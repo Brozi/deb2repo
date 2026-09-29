@@ -65,12 +65,12 @@ def get_latest_tag(host: str, owner: str, repo: str) -> str | None:
 
 
 def get_latest_deb(
-    host: str, owner: str, repo: str, distro: str, target_dir: str = "./repo/pool/main/"
+    host: str, owner: str, name: str, distro: str, target_dir: str = "./repo/pool/main/"
 ):
 
-    tag = get_latest_tag(host, owner, repo)
+    tag = get_latest_tag(host, owner, name)
 
-    api_url = f"https://api.{host}.com/repos/{owner}/{repo}/releases/tags/{tag}"
+    api_url = f"https://api.{host}.com/repos/{owner}/{name}/releases/tags/{tag}"
     response = requests.get(api_url)
     response.raise_for_status()
     release_data: dict[str, str] = response.json()
