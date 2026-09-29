@@ -1,10 +1,8 @@
 import os
 
 from deb2repo import poller, repo_builder
+from deb2repo.config import settings
 from deb2repo.database import SessionLocal, TargetRepo
-
-GPG_KEY_ID = os.environ.get("GPG_KEY_ID")
-REPO_ORIGIN = os.environ.get("REPO_ORIGIN", "My Custom Repo")
 
 
 def run_polling_cycle():
@@ -13,49 +11,63 @@ def run_polling_cycle():
     db = SessionLocal()
 
     try:
-        repos = db.query(TargetRepo).all()
-        needs_rebuild = False
+        active_distros = db.query(TargetRepo.distro).distinct().all()
 
-        for repo in repos:
-            latest_tag = poller.get_latest_tag(repo.host, repo.owner, repo.name)
+        for (distro_name,) in active_distros:
+            repos_for_distro = db.query(TargetRepo).filter_by(distro=distro_name).all()
+            needs_rebuild = False
 
-            if latest_tag == repo.last_tag:
-                continue
-
-            print(
-                f"New release found for {repo.host}/{repo.owner}/{repo.name}: {latest_tag}"
-            )
-
-            poller.get_latest_deb(repo.host, repo.owner, repo.name, repo.distro)
-
-            repo.last_tag = latest_tag
-
-        db.commit()
-
-        if needs_rebuild:
-            print("Changes detected for {repo.distro}. Rebuilding index...")
-            repo_root = f"/app/repo/{repo.distro}"
-
-            os.makedirs(os.path.join(repo_root, "pool", "main"), exist_ok=True)
-
-            try:
-
-                repo_builder.generate_compressed_index(repo_root)
-
-                repo_builder.generate_and_sign_release(
-                    repo_root, GPG_KEY_ID, repo.distro, REPO_ORIGIN
+            for repo in repos_for_distro:
+                latest_tag = poller.get_latest_tag(
+                    repo.host, repo.owner, repo.package_name
                 )
 
-                print(f"Succesfully finalized repository update for {repo.distro}.")
+                if latest_tag == repo.last_tag:
+                    continue
 
-            except RuntimeError as e:
-                print(f"CRITICAL ERROR: Failed to rebuild repo for {repo.distro}: {e}")
+                print(
+                    f"New release found for {repo.host}/{repo.owner}/{repo.package_name}: {latest_tag}"
+                )
 
-            except Exception as e:  # noqa: BLE001
-                print(f"Unexpected error during repo rebuild for {repo.distro}: {e}")
+                poller.get_latest_deb(
+                    repo.host, repo.owner, repo.package_name, repo.distro
+                )
 
-        else:
-            print("No changes detected. Skipping rebuild.")
+                repo.last_tag = latest_tag
+
+            db.commit()
+
+            if needs_rebuild:
+                print(f"Changes detected for {distro_name}. Rebuilding index...")
+                repo_root = f"/app/repo/{distro_name}"
+
+                os.makedirs(os.path.join(repo_root, "pool", "main"), exist_ok=True)
+
+                try:
+
+                    repo_builder.generate_compressed_index(repo_root)
+
+                    repo_builder.generate_and_sign_release(
+                        repo_root,
+                        settings.gpg_key_id,
+                        distro_name,
+                        settings.repo_origin,
+                    )
+
+                    print(f"Succesfully finalized repository update for {distro_name}.")
+
+                except RuntimeError as e:
+                    print(
+                        f"CRITICAL ERROR: Failed to rebuild repo for {distro_name}: {e}"
+                    )
+
+                except Exception as e:  # noqa: BLE001
+                    print(
+                        f"Unexpected error during repo rebuild for {distro_name}: {e}"
+                    )
+
+            else:
+                print("No changes detected. Skipping rebuild.")
 
     finally:
         db.close()
