@@ -1,8 +1,5 @@
+from deb2repo import poller, repo_builder
 from deb2repo.database import SessionLocal, TargetRepo
-
-import deb2repo.poller as poller
-
-import deb2repo.repo_builder as repo_builder
 
 
 def run_polling_cycle():
