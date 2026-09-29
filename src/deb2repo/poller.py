@@ -51,10 +51,7 @@ def filter_assets(release_data: dict[str, str], target_distro: str) -> list[str]
         return assets
 
 
-def get_latest_deb(
-    host: str, owner: str, repo: str, distro: str, target_dir: str = "./repo/pool/main/"
-):
-
+def get_latest_tag(host: str, owner: str, repo: str) -> str | None:
     base_url = f"https://{host}.com/{owner}/{repo}/releases.atom"
     feed = feedparser.parse(base_url)
 
@@ -64,6 +61,14 @@ def get_latest_deb(
     latest_entry = feed.entries[0]
     tag = latest_entry["link"].split("/")[-1]
     print(f"Latest release tag: {tag}")
+    return tag
+
+
+def get_latest_deb(
+    host: str, owner: str, repo: str, distro: str, target_dir: str = "./repo/pool/main/"
+):
+
+    tag = get_latest_tag(host, owner, repo)
 
     api_url = f"https://api.{host}.com/repos/{owner}/{repo}/releases/tags/{tag}"
     response = requests.get(api_url)
