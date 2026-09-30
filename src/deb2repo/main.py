@@ -56,12 +56,12 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 @app.get("/api/repos/")
-def list_repos(db: Session):
+def list_repos(db: DbSession):
     return db.query(TargetRepo).all()
 
 
-@app.post("/api/repos/")
-def add_repo(repo: RepoCreate, db: Session):
+@app.post("/api/repos/", status_code=201)
+def add_repo(repo: RepoCreate, db: DbSession):
     existing = (
         db.query(TargetRepo)
         .filter_by(
@@ -91,7 +91,7 @@ def add_repo(repo: RepoCreate, db: Session):
 
 
 @app.delete("/api/repos/{repo_id}/")
-def remove_repo(repo_id: int, db: Session):
+def remove_repo(repo_id: int, db: DbSession):
     repo = db.query(TargetRepo).filter_by(id=repo_id).first()
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
