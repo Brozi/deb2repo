@@ -49,7 +49,7 @@ def filter_assets(
 
 
 def get_latest_tag(host: str, owner: str, name: str) -> str | None:
-    base_url = f"https://{host}.com/{owner}/{name}/releases.atom"
+    base_url = f"https://{host}/{owner}/{name}/releases.atom"
     feed = feedparser.parse(base_url)
 
     if not feed.entries:
@@ -68,7 +68,7 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
     if not tag:
         return
 
-    api_url = f"https://api.{host}.com/repos/{owner}/{name}/releases/tags/{tag}"
+    api_url = f"https://api.{host}/repos/{owner}/{name}/releases/tags/{tag}"
 
     headers = {}
 
