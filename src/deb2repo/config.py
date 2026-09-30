@@ -7,9 +7,12 @@ class Settings(BaseSettings):
     repo_origin: str = "My Custom Repo"
     base_repo_path: str = "/app/repo"
 
-    my_model_config: SettingsConfigDict = SettingsConfigDict(
+    #fmt: off
+
+    my_model_config  = SettingsConfigDict(  # pyright: ignore[reportUnannotatedClassAttribute]
         env_file=".env", env_file_encoding="utf-8"
     )
+    #fmt: on
 
 
 settings = Settings()  # pyright: ignore[reportCallIssue]
