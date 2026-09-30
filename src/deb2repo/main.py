@@ -55,12 +55,12 @@ def get_db():
 DbSession = Annotated[Session, Depends(get_db)]
 
 
-@app.get("/api/repos/")
+@app.get("/api/repos/list")
 def list_repos(db: DbSession):
     return db.query(TargetRepo).all()
 
 
-@app.post("/api/repos/", status_code=201)
+@app.post("/api/repos/add", status_code=201)
 def add_repo(repo: RepoCreate, db: DbSession):
     existing = (
         db.query(TargetRepo)
@@ -90,7 +90,7 @@ def add_repo(repo: RepoCreate, db: DbSession):
     return {"message": "Repository added to the polling queue.", "data": new_repo}
 
 
-@app.delete("/api/repos/{repo_id}/")
+@app.delete("/api/repos/delete/{repo_id}/")
 def remove_repo(repo_id: int, db: DbSession):
     repo = db.query(TargetRepo).filter_by(id=repo_id).first()
     if not repo:
