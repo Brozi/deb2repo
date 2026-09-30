@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
 from deb2repo.database import SessionLocal, TargetRepo
@@ -53,3 +53,13 @@ def add_repo(
         "status": "success",
         "message": f"Added {host}/{owner}/{package_name} {distro} to the polling queue.",
     }
+
+
+@app.post("/sync/", status_code=202)
+def force_polling_cycle(background_tasks: BackgroundTasks):
+    """
+    Bypasses the 15-minute APScheduler interval and immediately
+    forces the polling loop to execute in the background.
+    """
+    background_tasks.add_task(run_polling_cycle)
+    return {"message": "Background sync triggered. Check Docker logs for progress."}
