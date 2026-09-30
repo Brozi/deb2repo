@@ -13,8 +13,8 @@ def generate_compressed_index(
         binary_dir = os.path.join(dists_dir, "main", f"binary-{arch}")
         os.makedirs(binary_dir, exist_ok=True)
 
-        tmp_compressed = os.path.join(base_path, "Packages.gz.tmp")
-        final_compressed = os.path.join(base_path, "Packages.gz")
+        tmp_compressed = os.path.join(binary_dir, "Packages.gz.tmp")
+        final_compressed = os.path.join(binary_dir, "Packages.gz")
 
         with open(tmp_compressed, "wb") as out_file:
             p1 = subprocess.Popen(
