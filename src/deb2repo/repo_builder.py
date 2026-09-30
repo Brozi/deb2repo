@@ -128,4 +128,4 @@ def generate_and_sign_release(
     os.replace(tmp_gpg, final_gpg)
 
     os.remove(release_conf_path)
-    print("Successfully generated and signed Release for {codename}")
+    print(f"Successfully generated and signed Release for {codename}")
