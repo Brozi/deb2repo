@@ -60,13 +60,13 @@ def generate_and_sign_release(
     architectures: list[str] = ["amd64", "arm64"],
 ):
     dists_dir = os.path.join(repo_root, "dists", codename)
-    release_conf_path = os.path.join(repo_root, "apt-release.conf")
+    release_conf_path = os.path.join(dists_dir, "apt-release.conf")
 
-    tmp_release_path = os.path.join(repo_root, "Release.tmp")
-    final_release = os.path.join(repo_root, "Release")
+    tmp_release_path = os.path.join(dists_dir, "Release.tmp")
+    final_release = os.path.join(dists_dir, "Release")
 
-    tmp_gpg = os.path.join(repo_root, "Release.gpg.tmp")
-    final_gpg = os.path.join(repo_root, "Release.gpg")
+    tmp_gpg = os.path.join(dists_dir, "Release.gpg.tmp")
+    final_gpg = os.path.join(dists_dir, "Release.gpg")
 
     arch_string = " ".join(architectures)
 
