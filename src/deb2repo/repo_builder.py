@@ -175,6 +175,8 @@ def compare_deb_versions(file_a: str, file_b: str) -> int:
 
 
 def prune_obsolete_binaries(pool_dir: str, keep_count: int = 2):
+    if keep_count == 0:
+        return
     """Retains the most recent N binaries for a package and deletes the rest"""
     package_groups = {}
     search_pattern = os.path.join(pool_dir, "*.deb")
