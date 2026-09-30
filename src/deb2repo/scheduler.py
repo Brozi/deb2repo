@@ -1,3 +1,4 @@
+import os
 from deb2repo import poller, repo_builder
 from deb2repo.config import settings
 from deb2repo.database import SessionLocal, TargetRepo
@@ -41,9 +42,12 @@ def run_polling_cycle(rebuild: bool = False):
 
             db.commit()
 
+            pool_dir = os.path.join("pool", distro_name, "main")
+            repo_builder.prune_obsolete_binaries(pool_dir)
+
             if needs_rebuild:
-                print(f"Changes detected for {distro_name}. Rebuilding index...")
                 repo_root = settings.base_repo_path
+                print(f"Changes detected for {distro_name}. Rebuilding index...")
 
                 try:
 

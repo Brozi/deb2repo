@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     repo_origin: str = "My Custom Repo"
     base_repo_path: str = "/app/repo"
     db_url: str = "sqlite:////app/state/repo_state.db"
+    keep_count: int = 2
 
     #fmt: off
 
