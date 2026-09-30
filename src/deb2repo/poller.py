@@ -10,6 +10,10 @@ VALID_DEB_PATTERN = re.compile(
     r"^(?!.*(-dbg|-dev)).*(amd64|x86_64|arm64|all).*\.deb$", re.IGNORECASE
 )
 
+UNSTABLE_PATTERN = re.compile(
+    r"(rc|alpha|beta|dev|pre|nightly|test|snapshot)", re.IGNORECASE
+)
+
 KNOWN_CODENAMES = [
     "buster",
     "bullseye",
@@ -55,10 +59,14 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
     if not feed.entries:
         print(f"No releases found for {host}/{owner}/{name}")
         return None
-    latest_entry = feed.entries[0]
-    tag = latest_entry["link"].split("/")[-1]
-    print(f"Latest release tag: {tag}")
-    return tag
+    for entry in feed.entries:
+        tag = entry["link"].split("/")[-1]
+
+        if not UNSTABLE_PATTERN.search(tag):
+            print(f"Latest stable release tag: {tag}")
+            return tag
+    print(f"No stable releases found for {host}/{owner}/{name}")
+    return None
 
 
 def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
