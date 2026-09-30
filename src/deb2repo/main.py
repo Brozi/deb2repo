@@ -33,15 +33,23 @@ def get_db():
 
 
 @app.post("/api/repos/")
-def add_repo(host: str, owner: str, name: str, db: Session = Depends(get_db)):
-    existing = db.query(TargetRepo).filter_by(host=host, owner=owner, name=name).first()
+def add_repo(
+    host: str, owner: str, package_name: str, distro: str, db: Session = Depends(get_db)
+):
+    existing = (
+        db.query(TargetRepo)
+        .filter_by(host=host, owner=owner, package_name=package_name)
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Repository already tracked")
-    new_repo = TargetRepo(host=host, owner=owner, name=name)
+    new_repo = TargetRepo(
+        host=host, owner=owner, package_name=package_name, distro=distro
+    )
     db.add(new_repo)
     db.commit()
 
     return {
         "status": "success",
-        "message": f"Added {host}/{owner}/{name} to the polling queue.",
+        "message": f"Added {host}/{owner}/{package_name} {distro} to the polling queue.",
     }
