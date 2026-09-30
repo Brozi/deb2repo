@@ -108,3 +108,12 @@ def force_polling_cycle(background_tasks: BackgroundTasks):
     """
     background_tasks.add_task(run_polling_cycle)
     return {"message": "Background sync triggered. Check Docker logs for progress."}
+
+
+@app.post("/api/rebuild/", status_code=202)
+def force_package_rebuild(background_tasks: BackgroundTasks):
+    """
+    Force rebuild of the packages in the database without their removal.
+    """
+    background_tasks.add_task(run_polling_cycle, rebuild=True)
+    return {"message": "Background sync triggered. Check Docker logs for progress."}
