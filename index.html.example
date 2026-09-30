@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BroziRepo | APT Archive</title>
+    <style>
+        :root {
+            --bg-base: #09090b;
+            --bg-surface: #18181b;
+            --bg-border: #27272a;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --accent: #2dd4bf;
+            --accent-hover: #14b8a6;
+            --code-bg: #000000;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 768px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid var(--bg-border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-left: 1rem;
+            transition: color 0.2s;
+        }
+
+        .links a:hover { color: var(--accent); }
+
+        .control-group {
+            background: var(--bg-surface);
+            border: 1px solid var(--bg-border);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-group label {
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        select {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            border: 1px solid var(--bg-border);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            min-width: 150px;
+        }
+
+        select:focus { border-color: var(--accent); }
+
+        .step-container { margin-bottom: 2rem; }
+        
+        .step-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+        }
+
+        .code-block {
+            position: relative;
+            background: var(--code-bg);
+            border: 1px solid var(--bg-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        pre {
+            padding: 1.25rem;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875rem;
+            color: #e4e4e7;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--bg-surface);
+            color: var(--text-muted);
+            border: 1px solid var(--bg-border);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        .copy-btn.copied {
+            background: var(--accent);
+            color: var(--bg-base);
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>BroziRepo</h1>
+            <div class="links">
+                <a href="/pool/">/pool</a>
+                <a href="/dists/">/dists</a>
+            </div>
+        </header>
+
+        <div class="control-group">
+            <label for="distro-select">Target Distribution</label>
+            <select id="distro-select">
+                <option value="buster">Debian 10 (Buster)</option>
+                <option value="bullseye">Debian 11 (Bullseye)</option>
+                <option value="bookworm">Debian 12 (Bookworm)</option>
+                <option value="trixie">Debian 13 (Trixie)</option>
+                <option value="forky">Debian 14(Forky)</option>
+                <option value="sid">Debian Unstable (Sid)</option>
+                <option value="jammy">Ubuntu 22.04 (Jammy)</option>
+                <option value="noble" selected>Ubuntu 24.04 (Noble)</option>
+                <option value="questing">Ubuntu 25.10 (Questing)</option>
+                <option value="resolute">Ubuntu 26.04 (Resolute)</option>
+            </select>
+        </div>
+
+        <div class="step-container">
+            <div class="step-title">1. Install Dependencies</div>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><code>sudo apt update && sudo apt install -y curl gnupg</code></pre>
+            </div>
+        </div>
+
+        <div class="step-container">
+            <div class="step-title">2. Import Repository Key</div>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><code>curl -fsSL http://<span class="host-target">localhost</span>/repo-key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/deb2repo.gpg</code></pre>
+            </div>
+        </div>
+
+        <div class="step-container">
+            <div class="step-title">3. Configure Source List</div>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><code>echo "deb [signed-by=/etc/apt/keyrings/deb2repo.gpg] http://<span class="host-target">localhost</span>/ <span id="distro-target">bookworm</span> main" | sudo tee /etc/apt/sources.list.d/deb2repo.list</code></pre>
+            </div>
+        </div>
+
+        <div class="step-container">
+            <div class="step-title">4. Update Package Cache</div>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><code>sudo apt update</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const host = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+            document.querySelectorAll('.host-target').forEach(el => {
+                el.textContent = host;
+            });
+        });
+
+        document.getElementById('distro-select').addEventListener('change', (e) => {
+            document.getElementById('distro-target').textContent = e.target.value;
+        });
+
+        async function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            const textToCopy = pre.innerText;
+
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                const originalText = btn.innerText;
+                btn.innerText = 'Copied!';
+                btn.classList.add('copied');
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                btn.innerText = 'Error';
+            }
+        }
+    </script>
+</body>
+</html>
