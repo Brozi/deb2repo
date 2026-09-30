@@ -13,41 +13,49 @@ def generate_compressed_index(
         binary_dir = os.path.join(dists_dir, "main", f"binary-{arch}")
         os.makedirs(binary_dir, exist_ok=True)
 
+        tmp_uncompressed = os.path.join(binary_dir, "Packages.tmp")
+        final_uncompressed = os.path.join(binary_dir, "Packages")
+
         tmp_compressed = os.path.join(binary_dir, "Packages.gz.tmp")
         final_compressed = os.path.join(binary_dir, "Packages.gz")
 
         with open(tmp_compressed, "wb") as out_file:
-            p1 = subprocess.Popen(
+            scan_result = subprocess.run(
                 ["dpkg-scanpackages", "-a", arch, pool_dir, "/dev/null"],
                 cwd=base_path,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-
-            p2 = subprocess.Popen(
-                ["gzip", "-9c"],
-                cwd=base_path,
-                stdin=p1.stdout,
                 stdout=out_file,
                 stderr=subprocess.PIPE,
+                check=True,
             )
 
-            if p1.stdout is not None:
-                p1.stdout.close()
+            if scan_result.returncode != 0:
+                if os.path.exists(tmp_compressed):
+                    os.remove(tmp_compressed)
+                raise RuntimeError(
+                    f"dpkg-scanpackages failed with error: {scan_result.stderr.decode()}"
+                )
 
-            _, stderr_p2 = p2.communicate()
+        with open(tmp_uncompressed, "rb") as in_file, open(
+            tmp_compressed, "wb"
+        ) as out_file:
+            gz_result = subprocess.run(
+                ["gzip", "-9c"],
+                stdin=in_file,
+                stdout=out_file,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
 
-            if p2.returncode != 0:
-                os.remove(tmp_compressed)
-                raise RuntimeError(f"Gzip failed with error: {stderr_p2.decode()}")
+            if gz_result.returncode != 0:
+                if os.path.exists(tmp_uncompressed):
+                    os.remove(tmp_uncompressed)
+                if os.path.exists(tmp_compressed):
+                    os.remove(tmp_compressed)
+                raise RuntimeError(
+                    f"gzip failed with error: {gz_result.stderr.decode()}"
+                )
 
-            _ = p1.wait()
-            if p1.returncode != 0:
-                os.remove(tmp_compressed)
-                if p1.stderr is not None:
-                    raise RuntimeError(
-                        f"dpkg-scanpackages failed with error: {p1.stderr.read().decode()}"
-                    )
+        os.replace(tmp_uncompressed, final_uncompressed)
         os.replace(tmp_compressed, final_compressed)
         print(f"Succesfully generated Packages.gz for {distro}-{arch}")
 
