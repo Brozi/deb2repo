@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     #fmt: off
 
-    my_model_config  = SettingsConfigDict(  # pyright: ignore[reportUnannotatedClassAttribute]
+    model_config  = SettingsConfigDict(  # pyright: ignore[reportUnannotatedClassAttribute]
         env_file=".env", env_file_encoding="utf-8"
     )
     #fmt: on
