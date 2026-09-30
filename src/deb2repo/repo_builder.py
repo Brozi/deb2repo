@@ -19,7 +19,7 @@ def generate_compressed_index(
         tmp_compressed = os.path.join(binary_dir, "Packages.gz.tmp")
         final_compressed = os.path.join(binary_dir, "Packages.gz")
 
-        with open(tmp_compressed, "wb") as out_file:
+        with open(tmp_uncompressed, "wb") as out_file:
             scan_result = subprocess.run(
                 ["dpkg-scanpackages", "-a", arch, pool_dir, "/dev/null"],
                 cwd=base_path,
