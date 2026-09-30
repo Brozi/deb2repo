@@ -38,7 +38,7 @@ def add_repo(
 ):
     existing = (
         db.query(TargetRepo)
-        .filter_by(host=host, owner=owner, package_name=package_name)
+        .filter_by(host=host, owner=owner, package_name=package_name, distro=distro)
         .first()
     )
     if existing:
