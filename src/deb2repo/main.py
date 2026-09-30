@@ -1,5 +1,6 @@
 import re
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
@@ -51,13 +52,16 @@ def get_db():
         db.close()
 
 
-@app.get("/repos/")
-def list_repos(db: Session = Depends(get_db)):
+DbSession = Annotated[Session, Depends(get_db)]
+
+
+@app.get("/api/repos/")
+def list_repos(db: Session):
     return db.query(TargetRepo).all()
 
 
-@app.post("/repos/")
-def add_repo(repo: RepoCreate, db: Session = Depends(get_db)):
+@app.post("/api/repos/")
+def add_repo(repo: RepoCreate, db: Session):
     existing = (
         db.query(TargetRepo)
         .filter_by(
@@ -86,8 +90,8 @@ def add_repo(repo: RepoCreate, db: Session = Depends(get_db)):
     return {"message": "Repository added to the polling queue.", "data": new_repo}
 
 
-@app.delete("/repos/{repo_id}/")
-def remove_repo(repo_id: int, db: Session = Depends(get_db)):
+@app.delete("/api/repos/{repo_id}/")
+def remove_repo(repo_id: int, db: Session):
     repo = db.query(TargetRepo).filter_by(id=repo_id).first()
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
@@ -96,7 +100,7 @@ def remove_repo(repo_id: int, db: Session = Depends(get_db)):
     return {"message": f"Successfully stopped tracking repository with ID {repo_id}"}
 
 
-@app.post("/sync/", status_code=202)
+@app.post("/api/sync/", status_code=202)
 def force_polling_cycle(background_tasks: BackgroundTasks):
     """
     Bypasses the 15-minute APScheduler interval and immediately
