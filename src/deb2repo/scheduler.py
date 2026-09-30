@@ -40,13 +40,11 @@ def run_polling_cycle():
 
             if needs_rebuild:
                 print(f"Changes detected for {distro_name}. Rebuilding index...")
-                repo_root = f"/app/repo/{distro_name}"
-
-                os.makedirs(os.path.join(repo_root, "pool", "main"), exist_ok=True)
+                repo_root = settings.base_repo_path
 
                 try:
 
-                    repo_builder.generate_compressed_index(repo_root)
+                    repo_builder.generate_compressed_index(repo_root, distro_name)
 
                     repo_builder.generate_and_sign_release(
                         repo_root,

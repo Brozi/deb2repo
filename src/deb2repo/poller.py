@@ -7,7 +7,7 @@ from typing import Any
 from deb2repo.config import settings
 
 VALID_DEB_PATTERN = re.compile(
-    r"^(?!.*(-dbg|-dev)).*(amd64|x86_64|all).*\.deb$", re.IGNORECASE
+    r"^(?!.*(-dbg|-dev)).*(amd64|x86_64|arm64|all).*\.deb$", re.IGNORECASE
 )
 
 KNOWN_CODENAMES = [
@@ -62,7 +62,7 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
 
 
 def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
-    target_dir = os.path.join(settings.base_repo_path, distro, "pool", "main")
+    target_dir = os.path.join(settings.base_repo_path, "pool", distro, "main")
 
     tag = get_latest_tag(host, owner, name)
     if not tag:
