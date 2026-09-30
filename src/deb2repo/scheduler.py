@@ -16,8 +16,9 @@ def run_polling_cycle(rebuild: bool = False):
 
             if rebuild:
                 needs_rebuild = True
+            else:
 
-            needs_rebuild = False
+                needs_rebuild = False
 
             for repo in repos_for_distro:
                 latest_tag = poller.get_latest_tag(
