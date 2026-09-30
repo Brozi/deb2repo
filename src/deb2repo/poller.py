@@ -88,7 +88,17 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
 
         download_url: str = asset["browser_download_url"]
         filename: str = asset["name"]
-        file_path = os.path.join(target_dir, filename)
+
+        filename = filename.replace("x86_64", "amd64").replace("armv8", "arm64")
+
+        filename = re.sub(
+            r"_(amd64|arm64|all)_(.*?)\.deb$",
+            r"_\2_\1.deb",
+            filename,
+            flags=re.IGNORECASE,
+        )
+
+        file_path: str = os.path.join(target_dir, filename)
 
         os.makedirs(target_dir, exist_ok=True)
 
