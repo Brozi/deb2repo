@@ -1,9 +1,9 @@
 from sqlalchemy import Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
-engine = create_engine(
-    "sqlite:///./repo_state.db", connect_args={"check_same_thread": False}
-)
+from deb2repo.config import settings
+
+engine = create_engine(settings.db_url, connect_args={"check_same_thread": False})
 
 SessionLocal: sessionmaker[Session] = sessionmaker(
     autocommit=False, autoflush=False, bind=engine
