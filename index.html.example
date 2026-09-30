@@ -189,7 +189,7 @@
             <div class="step-title">3. Configure Source List</div>
             <div class="code-block">
                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                <pre><code>echo "deb [signed-by=/etc/apt/keyrings/deb2repo.gpg] http://<span class="host-target">localhost</span>/ <span id="distro-target">bookworm</span> main" | sudo tee /etc/apt/sources.list.d/deb2repo.list</code></pre>
+                <pre><code>echo "deb [signed-by=/etc/apt/keyrings/deb2repo.gpg] http://<span class="host-target">localhost</span>/ <span id="distro-target">noble</span> main" | sudo tee /etc/apt/sources.list.d/deb2repo.list</code></pre>
             </div>
         </div>
 
