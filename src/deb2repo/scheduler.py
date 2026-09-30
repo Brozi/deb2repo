@@ -34,6 +34,7 @@ def run_polling_cycle():
                 )
 
                 repo.last_tag = latest_tag
+                needs_rebuild = True
 
             db.commit()
 
