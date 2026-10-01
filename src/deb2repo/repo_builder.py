@@ -6,8 +6,11 @@ from functools import cmp_to_key
 
 
 def generate_compressed_index(
-    base_path: str, distro: str, architectures: list[str] = ["amd64", "arm64"]
+    base_path: str, distro: str, architectures: list[str] = ["amd64", "arm64", "i386"]
 ):
+    """Generate Packages.gz index for a given distribution and architectures. i386 is added here purely for
+    apt not to complain when the architecture is enabled on the machine, but the repo serves no packages for it.
+    """
     pool_dir = os.path.join("pool", distro, "main")
     dists_dir = os.path.join(base_path, "dists", distro)
 
@@ -67,7 +70,7 @@ def generate_and_sign_release(
     gpg_key_id: str,
     codename: str,
     origin: str,
-    architectures: list[str] = ["amd64", "arm64"],
+    architectures: list[str] = ["amd64", "arm64", "i386"],
 ):
     dists_dir = os.path.join(repo_root, "dists", codename)
     release_conf_path = os.path.join(dists_dir, "apt-release.conf")
