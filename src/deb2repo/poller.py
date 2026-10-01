@@ -97,7 +97,11 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
         download_url: str = asset["browser_download_url"]
         filename: str = asset["name"]
 
-        filename = filename.replace("x86_64", "amd64").replace("armv8", "arm64")
+        filename = (
+            filename.replace("x86_64", "amd64")
+            .replace("armv8", "arm64")
+            .replace("x86_32", "i386")
+        )
 
         filename = re.sub(
             r"_(amd64|arm64|all)_(.*?)\.deb$",
