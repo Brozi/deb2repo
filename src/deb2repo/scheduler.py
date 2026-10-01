@@ -60,7 +60,9 @@ def run_polling_cycle(rebuild: bool = False):
                         settings.repo_origin,
                     )
 
-                    print(f"Succesfully finalized repository update for {distro_name}.")
+                    print(
+                        f"Successfully finalized repository update for {distro_name}."
+                    )
 
                 except RuntimeError as e:
                     print(

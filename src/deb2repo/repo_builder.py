@@ -62,7 +62,7 @@ def generate_compressed_index(
 
         os.replace(tmp_uncompressed, final_uncompressed)
         os.replace(tmp_compressed, final_compressed)
-        print(f"Succesfully generated Packages.gz for {distro}-{arch}")
+        print(f"Successfully generated Packages.gz for {distro}-{arch}")
 
 
 def generate_and_sign_release(
