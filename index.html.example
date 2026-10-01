@@ -203,36 +203,68 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const host = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
-            document.querySelectorAll('.host-target').forEach(el => {
-                el.textContent = host;
-            });
-        });
+    document.addEventListener('DOMContentLoaded', () => {
+        const host = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+        document.querySelectorAll('.host-target').forEach(el => el.textContent = host);
+    });
 
-        document.getElementById('distro-select').addEventListener('change', (e) => {
-            document.getElementById('distro-target').textContent = e.target.value;
-        });
+    document.getElementById('distro-select').addEventListener('change', (e) => {
+        document.getElementById('distro-target').textContent = e.target.value;
+    });
 
-        async function copyCode(btn) {
-            const pre = btn.nextElementSibling;
-            const textToCopy = pre.innerText;
+    async function copyCode(btn) {
+        const pre = btn.nextElementSibling;
+        const textToCopy = pre.innerText;
 
+        const triggerSuccess = () => {
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        };
+
+        const triggerError = (err) => {
+            console.error('Copy failed:', err);
+            btn.innerText = 'Error';
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
             try {
                 await navigator.clipboard.writeText(textToCopy);
-                const originalText = btn.innerText;
-                btn.innerText = 'Copied!';
-                btn.classList.add('copied');
-                
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.classList.remove('copied');
-                }, 2000);
+                triggerSuccess();
             } catch (err) {
-                console.error('Failed to copy text: ', err);
-                btn.innerText = 'Error';
+                triggerError(err);
+            }
+        } else {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                
+                // Prevent scrolling to bottom of page
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    triggerSuccess();
+                } else {
+                    triggerError('Fallback blocked');
+                }
+            } catch (err) {
+                triggerError(err);
             }
         }
-    </script>
+    }
+</script>
 </body>
 </html>
