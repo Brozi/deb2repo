@@ -103,6 +103,17 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
             .replace("x86_32", "i386")
         )
 
+        # Convert hyphen to underscore strictly before the final architecture tag
+        # (Fixes: pandoc-3.12-1-amd64.deb -> pandoc-3.12-1_amd64.deb)
+        filename = re.sub(
+            r"-(amd64|arm64|all)\.deb$",
+            r"_\1.deb",
+            filename,
+            flags=re.IGNORECASE,
+        )
+
+        # Reorder suffixes for packages that append tags after the architecture
+        # (Fixes: cliamp_2.3.0-1_amd64_ubu.deb -> cliamp_2.3.0-1_ubu_amd64.deb)
         filename = re.sub(
             r"_(amd64|arm64|all)_(.*?)\.deb$",
             r"_\2_\1.deb",
