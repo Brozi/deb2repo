@@ -8,6 +8,12 @@ class Settings(BaseSettings):
     base_repo_path: str = "/app/repo"
     db_url: str = "sqlite:////app/state/repo_state.db"
     keep_count: int = 2
+    hosted_archs: str = "amd64, arm64, i386, all"
+    known_codenames: str = (
+        "buster,bullseye,bookworm,trixie,sid,forky,jammy,noble,questing,resolute"
+    )
+
+    unstable_keywords: str = "rc,alpha,beta,dev,pre,nightly,test,snapshot"
 
     #fmt: off
 
