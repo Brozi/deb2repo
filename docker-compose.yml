@@ -9,7 +9,7 @@ services:
       - "8889:8000" # Expose FastAPI admin interface
     volumes:
       - ./state:/app/state # Persistent SQLite database
-      - ./public_repo:/app/public_repo # The target Debian repository
+      - ./repo:/app/repo # The target Debian repository
       - ~/.gnupg:/root/.gnupg # Bind the host's GPG keychain
 
   repo-server:
@@ -19,5 +19,5 @@ services:
     ports:
       - "8888:80" # Expose the APT repository to clients
     volumes:
-      - ./public_repo:/usr/share/nginx/html:ro # Read-only access for Nginx
+      - ./repo:/usr/share/nginx/html:ro # Read-only access for Nginx
       - ./repo-nginx.conf:/etc/nginx/conf.d/default.conf:ro
