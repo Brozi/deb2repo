@@ -1,7 +1,7 @@
 services:
-  deb-orchestrator:
-    build: .
-    container_name: deb-orchestrator
+  deb2repo:
+    image: ghcr.io/Brozi/deb2repo:latest
+    container_name: deb2repo
     restart: unless-stopped
     env_file:
       - .env
