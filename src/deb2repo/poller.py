@@ -1,55 +1,108 @@
 import os
 import re
+from typing import Any
 
 import feedparser
 import requests
-from typing import Any
+
 from deb2repo.config import settings
 
-VALID_DEB_PATTERN = re.compile(
-    r"^(?!.*(-dbg|-dev)).*(amd64|x86_64|arm64|all).*\.deb$", re.IGNORECASE
-)
+ARCH_MATRIX = {
+    # 1. Universal / Scripts (Checked first to bypass hardware specifics)
+    "noarch": "all",
+    "universal": "all",
+    "all": "all",
+    # 2. x86 / 64-bit (Must precede x86 32-bit to prevent false positive matching)
+    "x86_64": "amd64",
+    "amd64": "amd64",
+    "x64": "amd64",
+    "64bit": "amd64",
+    # 3. x86 / 32-bit
+    "x86_32": "i386",
+    "i386": "i386",
+    "i486": "i386",
+    "i586": "i386",
+    "i686": "i386",
+    "32bit": "i386",
+    "x86": "i386",  # Left at the bottom of the x86 block as a dangerous catch-all
+    # 4. ARM / 64-bit
+    "aarch64": "arm64",
+    "arm64": "arm64",
+    "armv8": "arm64",
+    # 5. ARM / 32-bit (Hard Float)
+    "armhf": "armhf",
+    "armv7l": "armhf",
+    "armv7": "armhf",
+    # 6. ARM / 32-bit (Soft Float / Older Embedded)
+    "armel": "armel",
+    "armv6l": "armel",
+    "armv6": "armel",
+    # 7. RISC-V
+    "riscv64": "riscv64",
+    "rv64": "riscv64",
+    # 8. PowerPC (Little Endian)
+    "ppc64le": "ppc64el",
+    "ppc64el": "ppc64el",
+    # 9. IBM System z
+    "s390x": "s390x",
+    # 10. MIPS (Little Endian, 64-bit)
+    "mips64le": "mips64el",
+    "mips64el": "mips64el",
+}
 
-UNSTABLE_PATTERN = re.compile(
-    r"(rc|alpha|beta|dev|pre|nightly|test|snapshot)", re.IGNORECASE
-)
 
-KNOWN_CODENAMES = [
-    "buster",
-    "bullseye",
-    "bookworm",
-    "trixie",
-    "sid",
-    "forky",
-    "jammy",
-    "noble",
-    "questing",
-    "resolute",
-]
+def get_unstable_pattern() -> re.Pattern[str]:
+    raw_keywords = settings.unstable_keywords
+    keywords = [k.strip() for k in raw_keywords.split(",") if k.strip()]
+    regex_string = "|".join(keywords)
+    return re.compile(rf"({regex_string})", re.IGNORECASE)
+
+
+def get_known_codenames() -> list[str]:
+    raw_codenames = settings.known_codenames
+    return [c.strip().lower() for c in raw_codenames.split(",") if c.strip()]
 
 
 def filter_assets(
-    release_data: dict[str, Any], target_distro: str
+    release_data: dict[str, Any], target_distro: str, package_name: str
 ) -> list[dict[str, Any]] | None:
     assets: list[dict[str, Any]] = release_data.get("assets", [])
-    if target_distro not in KNOWN_CODENAMES:
+    known_codenames = get_known_codenames()
+    if target_distro not in known_codenames:
         print(f"Warning: {target_distro} is not a known codename. Download aborted.")
         return []
 
-    deb_assets = [
-        asset
-        for asset in assets
-        if VALID_DEB_PATTERN.match(asset["name"])  # pyright: ignore[reportArgumentType]
-    ]
-    blacklisted_codenames = [dist for dist in KNOWN_CODENAMES if dist != target_distro]
-    # fmt: off
-    filtered_assets = [
-        asset
-        for asset in deb_assets
-        if not any(bad_dist in asset["name"].lower() for bad_dist in blacklisted_codenames)  # pyright: ignore[reportArgumentType]
-    ]
-    # fmt: on
-    return filtered_assets
+    raw_hosted = settings.hosted_archs
+    hosted_archs = [a.strip() for a in raw_hosted.split(",")]
+
+    unstable_pattern = get_unstable_pattern()
+    blacklisted_codenames = [dist for dist in known_codenames if dist != target_distro]
+    valid_downloads = []
+
+    for asset in assets:
+        filename = asset.get("name", "").lower()
+
+        if not filename.endswith(".deb"):
+            continue
+
+        if unstable_pattern.search(filename):
+            print(f"Skipping unstable package: {filename}")
+            continue
+
+        if any(bad_dist in filename for bad_dist in blacklisted_codenames):
+            print(f"Skipping package for other distros: {filename}")
+            continue
+
+        if package_name.lower() not in filename:
+            continue
+
+        for search_term, debian_arch in ARCH_MATRIX.items():
+            if search_term in filename:
+                if debian_arch in hosted_archs:
+                    asset["debian_arch"] = debian_arch
+                    valid_downloads.append(asset)
+                break
+    return valid_downloads
 
 
 def get_latest_tag(host: str, owner: str, name: str) -> str | None:
@@ -59,10 +112,13 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
     if not feed.entries:
         print(f"No releases found for {host}/{owner}/{name}")
         return None
+
+    unstable_pattern = get_unstable_pattern()
+
     for entry in feed.entries:
         tag = entry["link"].split("/")[-1]
 
-        if not UNSTABLE_PATTERN.search(tag):
+        if not unstable_pattern.search(tag):
             print(f"Latest stable release tag: {tag}")
             return tag
     print(f"No stable releases found for {host}/{owner}/{name}")
@@ -78,54 +134,47 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
 
     api_url = f"https://api.{host}/repos/{owner}/{name}/releases/tags/{tag}"
 
-    headers = {}
+    headers: dict[str, str] = {}
 
     if settings.github_token:
         headers["Authorization"] = f"Bearer {settings.github_token}"
+
     response = requests.get(api_url, headers=headers)
     response.raise_for_status()
     release_data: dict[str, str] = response.json()
 
-    deb_assets = filter_assets(release_data, distro)
+    deb_assets: list[dict[str, str]] | None = filter_assets(
+        release_data, distro, package_name=name
+    )
 
     if not deb_assets:
         print(f"No .deb packages found in release {tag}")
         return
 
+    os.makedirs(target_dir, exist_ok=True)
+
     for asset in deb_assets:
 
         download_url: str = asset["browser_download_url"]
-        filename: str = asset["name"]
+        original_filename: str = asset["name"]
 
-        filename = (
-            filename.replace("x86_64", "amd64")
-            .replace("armv8", "arm64")
-            .replace("x86_32", "i386")
-        )
+        debian_arch: str = asset.get("debian_arch", "all")
 
-        # Convert hyphen to underscore strictly before the final architecture tag
-        # (Fixes: pandoc-3.12-1-amd64.deb -> pandoc-3.12-1_amd64.deb)
-        filename = re.sub(
-            r"-(amd64|arm64|all)\.deb$",
-            r"_\1.deb",
-            filename,
-            flags=re.IGNORECASE,
-        )
+        if "_" in original_filename:
+            true_pkg_name = original_filename.split("_")[0]
+        else:
+            match = re.search(
+                r"^([a-zA-Z0-9\-]+?)(?:-v|-[0-9]|\.deb)", original_filename
+            )
+            true_pkg_name = match.group(1) if match else name
 
-        # Reorder suffixes for packages that append tags after the architecture
-        # (Fixes: cliamp_2.3.0-1_amd64_ubu.deb -> cliamp_2.3.0-1_ubu_amd64.deb)
-        filename = re.sub(
-            r"_(amd64|arm64|all)_(.*?)\.deb$",
-            r"_\2_\1.deb",
-            filename,
-            flags=re.IGNORECASE,
-        )
+        clean_version = tag.lstrip("v")
+
+        filename = f"{true_pkg_name}_{clean_version}_{debian_arch}.deb"
 
         file_path: str = os.path.join(target_dir, filename)
 
-        os.makedirs(target_dir, exist_ok=True)
-
-        print(f"Downloading {filename} to {target_dir}...")
+        print(f"Downloading {original_filename} as {filename} to {target_dir}...")
 
         with requests.get(download_url, stream=True, headers=headers) as r:
             r.raise_for_status()
@@ -134,3 +183,6 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
                     _ = f.write(chunk)
 
         print(f"Successfully downloaded {filename} to {file_path}")
+
+    print("Running garbage collection...")
+    prune_obsolete_binaries(target_dir, settings.keep_count)
