@@ -1,8 +1,6 @@
-import glob
 import os
 import subprocess
 import textwrap
-from functools import cmp_to_key
 
 
 def generate_compressed_index(
