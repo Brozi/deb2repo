@@ -7,7 +7,7 @@ name = "deb2repo-client"
 version = "0.1.0"
 description = "Secure CLI and SDK for deb2repo managment"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = ["requests>=2.31.0"]
 
 [project.scripts]
