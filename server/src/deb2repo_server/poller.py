@@ -5,7 +5,7 @@ from typing import Any
 import feedparser
 import requests
 
-from deb2repo.config import settings
+from deb2repo_server.config import settings
 
 ARCH_MATRIX = {
     # 1. Universal / Scripts (Checked first to bypass hardware specifics)

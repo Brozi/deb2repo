@@ -7,8 +7,8 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
-from deb2repo.database import SessionLocal, TargetRepo
-from deb2repo.scheduler import run_polling_cycle
+from deb2repo_server.database import SessionLocal, TargetRepo
+from deb2repo_server.scheduler import run_polling_cycle
 
 
 class RepoCreate(BaseModel):

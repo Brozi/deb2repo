@@ -1,7 +1,7 @@
 from sqlalchemy import Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
-from deb2repo.config import settings
+from deb2repo_server.config import settings
 
 engine = create_engine(settings.db_url, connect_args={"check_same_thread": False})
 
