@@ -1,6 +1,6 @@
 services:
   deb2repo:
-    image: ghcr.io/Brozi/deb2repo:latest
+    image: ghcr.io/brozi/deb2repo:latest
     container_name: deb2repo
     restart: unless-stopped
     env_file:
