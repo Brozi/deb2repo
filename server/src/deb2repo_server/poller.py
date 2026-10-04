@@ -6,6 +6,7 @@ import feedparser
 import requests
 
 from deb2repo_server.config import settings
+from deb2repo_server.pruner import prune_obsolete_pkgs
 
 ARCH_MATRIX = {
     # 1. Universal / Scripts (Checked first to bypass hardware specifics)
@@ -185,4 +186,4 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
         print(f"Successfully downloaded {filename} to {file_path}")
 
     print("Running garbage collection...")
-    prune_obsolete_binaries(target_dir, settings.keep_count)
+    prune_obsolete_pkgs(target_dir, settings.keep_count)
