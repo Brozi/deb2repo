@@ -1,16 +1,16 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y dpkg-dev gnupg apt-utils --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y dpkg-dev=1.22.6ubuntu6.6 gnupg=2.4.4-2ubuntu17.6 apt-utils=2.8.3 --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
+COPY pyproject.toml .
 COPY src/ ./src/
+
+RUN pip install --no-cache-dir .
 
 ENV PYTHONUNBUFFERED=1
 
 ENV PYTHONPATH=/app/src
 
-CMD ["uvicorn", "src.deb2repo.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.deb2repo_server.main:app", "--host", "0.0.0.0", "--port", "8000"]
