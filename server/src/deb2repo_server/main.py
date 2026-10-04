@@ -7,6 +7,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
+from deb2repo_server.config import settings
 from deb2repo_server.database import SessionLocal, TargetRepo
 from deb2repo_server.scheduler import run_polling_cycle
 
@@ -30,9 +31,11 @@ class RepoCreate(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
-    scheduler.add_job(run_polling_cycle, "interval", minutes=15)
+    scheduler.add_job(
+        run_polling_cycle, "interval", **settings.polling_interval, jitter=180
+    )
     scheduler.start()
-    print("Backgrund scheduler activated")
+    print("Backgrund scheduler activated (Interval: {settings.polling_interval})")
 
     yield
 
