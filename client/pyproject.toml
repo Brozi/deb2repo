@@ -11,4 +11,5 @@ requires-python = ">=3.11"
 dependencies = ["requests>=2.31.0"]
 
 [project.scripts]
-repo-cli = "deb2repo_client.main:main"
+repo-cli = "deb2repo_client.cli:main"
+repo-tui = "deb2repo_client.tui:main"
