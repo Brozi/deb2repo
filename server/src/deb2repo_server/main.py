@@ -93,7 +93,9 @@ def list_repos(db: DbSession, token: AuthDep):
 
 
 @app.post("/api/repos/add", status_code=201)
-def add_repo(repo: RepoCreate, db: DbSession, token: AuthDep):
+def add_repo(
+    repo: RepoCreate, background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
+):
     existing = (
         db.query(TargetRepo)
         .filter_by(
@@ -120,6 +122,8 @@ def add_repo(repo: RepoCreate, db: DbSession, token: AuthDep):
     db.add(new_repo)
     db.commit()
     db.refresh(new_repo)
+
+    background_tasks.add_task(run_polling_cycle, rebuild=True)
 
     return {"message": "Repository added to the polling queue.", "data": new_repo}
 
