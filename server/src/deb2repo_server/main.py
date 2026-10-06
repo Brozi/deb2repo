@@ -161,7 +161,7 @@ def remove_repo(
     db.delete(repo)
     db.commit()
 
-    background_tasks.add_task(run_polling_cycle, rebuild=True)
+    background_tasks.add_task(run_polling_cycle)
     return {
         "message": f"Successfully purged package '{repo.repo_name}'",
         "deleted_files_count": removed_files,
@@ -169,7 +169,7 @@ def remove_repo(
 
 
 @app.post("/api/sync/", status_code=202)
-def force_polling_cycle(background_tasks: BackgroundTasks):
+def force_polling_cycle(background_tasks: BackgroundTasks, token: AuthDep):
     """
     Bypasses the 15-minute APScheduler interval and immediately
     forces the polling loop to execute in the background.
@@ -179,7 +179,7 @@ def force_polling_cycle(background_tasks: BackgroundTasks):
 
 
 @app.post("/api/rebuild/", status_code=202)
-def force_package_rebuild(background_tasks: BackgroundTasks):
+def force_package_rebuild(background_tasks: BackgroundTasks, token: AuthDep):
     """
     Force rebuild of the package indexes without their removal.
     """
