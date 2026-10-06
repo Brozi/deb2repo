@@ -187,7 +187,7 @@ def force_package_rebuild(background_tasks: BackgroundTasks, token: AuthDep):
     return {"message": "Background sync triggered. Check Docker logs for progress."}
 
 
-@app.post("/api/repos/redownload/all", status_code=202)
+@app.post("/api/repos/redownload/all/", status_code=202)
 def force_redownload_all(
     background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
 ):
@@ -209,3 +209,19 @@ def force_redownload_all(
         "message": "Global reset complete. Redownload initiated.",
         "affected_count": len(repos),
     }
+
+
+@app.post("/api/repos/redownload/{repo_id}/", status_code=202)
+def force_repo_redownload(
+    repo_id: int, background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
+):
+    repo = db.query(TargetRepo).filter_by(id=repo_id).first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Wiping the state tricks the poller into treating it as a brand new repository
+    repo.last_tag = None
+    db.commit()
+
+    background_tasks.add_task(run_polling_cycle)
+    return {"message": f"Reset state for '{repo.repo_name}'. Redownload initiated."}
