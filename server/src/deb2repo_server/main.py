@@ -168,7 +168,7 @@ def remove_repo(
     }
 
 
-@app.post("/api/sync/", status_code=202)
+@app.post("/api/repos/sync/", status_code=202)
 def force_polling_cycle(background_tasks: BackgroundTasks, token: AuthDep):
     """
     Bypasses the 15-minute APScheduler interval and immediately
@@ -178,10 +178,34 @@ def force_polling_cycle(background_tasks: BackgroundTasks, token: AuthDep):
     return {"message": "Background sync triggered. Check Docker logs for progress."}
 
 
-@app.post("/api/rebuild/", status_code=202)
+@app.post("/api/repos/rebuild/", status_code=202)
 def force_package_rebuild(background_tasks: BackgroundTasks, token: AuthDep):
     """
     Force rebuild of the package indexes without their removal.
     """
     background_tasks.add_task(run_polling_cycle, rebuild=True)
     return {"message": "Background sync triggered. Check Docker logs for progress."}
+
+
+@app.post("/api/repos/redownload/all", status_code=202)
+def force_redownload_all(
+    background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
+):
+    repos = db.query(TargetRepo).all()
+    if not repos:
+        raise HTTPException(
+            status_code=404, detail="No repositories found to redownload."
+        )
+
+    for repo in repos:
+        repo.last_tag = None  # Reset last_tag to force redownload
+        db.add(repo)
+
+    db.commit()
+
+    background_tasks.add_task(run_polling_cycle)
+
+    return {
+        "message": "Global reset complete. Redownload initiated.",
+        "affected_count": len(repos),
+    }
