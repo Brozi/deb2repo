@@ -156,7 +156,7 @@ def remove_repo(
 
     background_tasks.add_task(run_polling_cycle, rebuild=True)
     return {
-        "message": f"Successfully purged package '{repo.package_name}'",
+        "message": f"Successfully purged package '{repo.repo_name}'",
         "deleted_files_count": removed_files,
     }
 

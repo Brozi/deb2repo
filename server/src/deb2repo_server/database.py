@@ -20,8 +20,9 @@ class TargetRepo(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     host: Mapped[str] = mapped_column(String, index=True)
     owner: Mapped[str] = mapped_column(String, index=True)
-    package_name: Mapped[str] = mapped_column(String, index=True)
+    repo_name: Mapped[str] = mapped_column(String, index=True)
     last_tag: Mapped[str | None] = mapped_column(String, nullable=True)
+    package_Name: Mapped[str] = mapped_column(String, index=True)
     distro: Mapped[str] = mapped_column(String, index=True)
 
 

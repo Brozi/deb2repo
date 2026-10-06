@@ -22,18 +22,18 @@ def run_polling_cycle(rebuild: bool = False):
 
             for repo in repos_for_distro:
                 latest_tag = poller.get_latest_tag(
-                    repo.host, repo.owner, repo.package_name
+                    repo.host, repo.owner, repo.repo_name
                 )
 
                 if latest_tag == repo.last_tag:
                     continue
 
                 print(
-                    f"New release found for {repo.host}/{repo.owner}/{repo.package_name}: {latest_tag}"
+                    f"New release found for {repo.host}/{repo.owner}/{repo.repo_name}: {latest_tag}"
                 )
 
                 poller.get_latest_deb(
-                    repo.host, repo.owner, repo.package_name, repo.distro
+                    repo.host, repo.owner, repo.repo_name, repo.distro
                 )
 
                 repo.last_tag = latest_tag
