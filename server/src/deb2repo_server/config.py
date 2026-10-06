@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     unstable_keywords: str = "rc,alpha,beta,dev,pre,nightly,test,snapshot"
     polling_interval: dict[str, int] = Field(default={"minutes": 15})
+    api_token: str | None = None
 
     @field_validator("polling_interval", mode="before")
     @classmethod
