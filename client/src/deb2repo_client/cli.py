@@ -75,7 +75,7 @@ def cmd_list(args: argparse.Namespace) -> None:
         print(f"{'PACKAGE':<25} {'DISTRO':<15} {'SOURCE':<40}")
         print("-" * 80)
         for t in repos:
-            source = f"{t.get('host')}/{t.get('owner')}/{t.get('package_name')}"
+            source = f"{t.get('host')}/{t.get('owner')}/{t.get('repo_name')}"
             print(
                 f"{t.get('package_name', 'N/A'):<25} {t.get('distro', 'N/A'):<15} {source:<40}"
             )
@@ -107,7 +107,7 @@ def cmd_import(args: argparse.Namespace) -> None:
             result_data = cast(dict[str, Any], result.get("data", {}))
 
             owner = result_data.get("owner", "unknown")
-            repo = result_data.get("repo", "unknown")
+            repo = result_data.get("repo_name", "unknown")
 
             print(f"[{i}/{len(lines)}] Success: Queued {owner}/{repo}")
             success_count += 1
