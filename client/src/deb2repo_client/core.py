@@ -65,7 +65,7 @@ class RepoClient:
         except requests.exceptions.RequestException as e:
             raise APIError(f"Network error: {e!s}")
 
-    def list_repos(self) -> list[dict] | dict[str, object]:
+    def list_repos(self) -> list[dict]:
         try:
             response = requests.get(
                 f"{self.api_url}/api/repos/list", headers=self.headers, timeout=10
