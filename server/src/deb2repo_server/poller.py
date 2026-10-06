@@ -1,11 +1,13 @@
 import os
 import re
+from pathlib import Path
 from typing import Any
 
 import feedparser
 import requests
 
 from deb2repo_server.config import settings
+from deb2repo_server.parser import extract_package_name
 from deb2repo_server.pruner import prune_obsolete_pkgs
 
 ARCH_MATRIX = {
@@ -126,7 +128,7 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
     return None
 
 
-def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
+def get_latest_deb(host: str, owner: str, name: str, distro: str) -> list[Path] | None:
     target_dir = os.path.join(settings.base_repo_path, "pool", distro, "main")
 
     tag = get_latest_tag(host, owner, name)
@@ -153,37 +155,43 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> None:
         return
 
     os.makedirs(target_dir, exist_ok=True)
+    clean_version = tag.lstrip("v")
+    downloaded_paths: list[Path] = []
 
     for asset in deb_assets:
 
         download_url: str = asset["browser_download_url"]
         original_filename: str = asset["name"]
-
         debian_arch: str = asset.get("debian_arch", "all")
 
-        if "_" in original_filename:
-            true_pkg_name = original_filename.split("_")[0]
-        else:
-            match = re.search(
-                r"^([a-zA-Z0-9\-]+?)(?:-v|-[0-9]|\.deb)", original_filename
-            )
-            true_pkg_name = match.group(1) if match else name
+        tmp_filename = f".tmp_{original_filename}"
+        tmp_filepath = os.path.join(target_dir, tmp_filename)
 
-        clean_version = tag.lstrip("v")
-
-        filename = f"{true_pkg_name}_{clean_version}_{debian_arch}.deb"
-
-        file_path: str = os.path.join(target_dir, filename)
-
-        print(f"Downloading {original_filename} as {filename} to {target_dir}...")
+        print(f"Downloading {original_filename} as to {target_dir}...")
 
         with requests.get(download_url, stream=True, headers=headers) as r:
             r.raise_for_status()
-            with open(file_path, "wb") as f:
+            with open(tmp_filepath, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     _ = f.write(chunk)
+        try:
+            true_pkg_name = extract_package_name(tmp_filepath)
+        except Exception as e:  # noqa: BLE001
+            print(
+                f"Failed to extract metadata from {original_filename}. Falling back to repo name '{name}'. Error: {e}"
+            )
+            true_pkg_name = name
 
-        print(f"Successfully downloaded {filename} to {file_path}")
+        final_filename = f"{true_pkg_name}_{clean_version}_{debian_arch}.deb"
+        final_filepath = os.path.join(target_dir, final_filename)
+
+        os.replace(tmp_filepath, final_filepath)
+
+        print(f"Successfully processed and saved {final_filename} to {target_dir}.")
+
+        downloaded_paths.append(Path(final_filepath))
 
     print("Running garbage collection...")
     prune_obsolete_pkgs(target_dir, settings.keep_count)
+
+    return downloaded_paths
