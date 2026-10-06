@@ -84,6 +84,41 @@ def cmd_list(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_import(args: argparse.Namespace) -> None:
+    client: RepoClient = get_client()
+    filepath = Path(args.file)
+
+    if not filepath.exists() or not filepath.is_file():
+        print(f"Fatal: Cannot read file '{filepath}'", file=sys.stderr)
+        sys.exit(1)
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+
+    if not lines:
+        print("Fatal: The provided file is empty.", file=sys.stderr)
+        sys.exit(1)
+    print(f"Starting import of len(lines) repositories for '{args.distro}'...")
+
+    success_count = 0
+    for i, url in enumerate(lines, start=1):
+        try:
+            result: dict[str, Any] = client.add_repo(url, args.distro)
+            result_data = cast(dict[str, Any], result.get("data", {}))
+
+            owner = result_data.get("owner", "unknown")
+            repo = result_data.get("repo", "unknown")
+
+            print(f"[{i}/{len(lines)}] Success: Queued {owner}/{repo}")
+            success_count += 1
+        except (ValueError, APIError) as e:
+            print(f"[{i}/{len(lines)}] Error adding '{url}': {e}", file=sys.stderr)
+
+    print(
+        f"\nImport complete. Successfully queued {success_count}/{len(lines)} repositories."
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="deb2repo admin cli client")
 
@@ -96,11 +131,37 @@ def main():
     add_parser = subparsers.add_parser(
         "add", help="Add a new repo to the tracking database"
     )
-    add_parser.add_argument("url")
-    add_parser.add_argument("-d", "--distro", required=True)
-    add_parser.add_argument("-p", "--package")
+    add_parser.add_argument("url", help="Repository URL")
+    add_parser.add_argument("-d", "--distro", required=True, help="Target distribution")
+    add_parser.add_argument(
+        "-p",
+        "--package",
+        help="Override package name (default: inferred from the .deb package",
+    )
+    add_parser.set_defaults(func=cmd_add)
 
-    subparsers.add_parser("list", help="List tracked repos")
+    import_parser = subparsers.add_parser(
+        "import", help="Bulk import repositories from a text file"
+    )
+    import_parser.add_argument(
+        "file", help="Path to the text file containing repository URLs"
+    )
+    import_parser.add_argument(
+        "-d",
+        "--distro",
+        required=True,
+        help="Target distribution for all imported repositories.",
+    )
+    import_parser.set_defaults(func=cmd_import)
+
+    list_parser = subparsers.add_parser("list", help="List tracked repos")
+
+    list_parser.add_argument(
+        "-s",
+        "--scripting",
+        help="Output in a scripting-friendly format",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 
