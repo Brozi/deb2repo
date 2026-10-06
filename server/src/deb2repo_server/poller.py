@@ -67,7 +67,7 @@ def get_known_codenames() -> list[str]:
 
 
 def filter_assets(
-    release_data: dict[str, Any], target_distro: str, package_name: str
+    release_data: dict[str, Any], target_distro: str, package_name: str | None
 ) -> list[dict[str, Any]] | None:
     assets: list[dict[str, Any]] = release_data.get("assets", [])
     known_codenames = get_known_codenames()
@@ -96,7 +96,7 @@ def filter_assets(
             print(f"Skipping package for other distros: {filename}")
             continue
 
-        if package_name.lower() not in filename:
+        if package_name and package_name.lower() not in filename:
             continue
 
         for search_term, debian_arch in ARCH_MATRIX.items():
@@ -128,14 +128,16 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
     return None
 
 
-def get_latest_deb(host: str, owner: str, name: str, distro: str) -> list[Path] | None:
+def get_latest_deb(
+    host: str, owner: str, repo_name: str, distro: str, package_name: str | None
+) -> list[Path] | None:
     target_dir = os.path.join(settings.base_repo_path, "pool", distro, "main")
 
-    tag = get_latest_tag(host, owner, name)
+    tag = get_latest_tag(host, owner, repo_name)
     if not tag:
         return
 
-    api_url = f"https://api.{host}/repos/{owner}/{name}/releases/tags/{tag}"
+    api_url = f"https://api.{host}/repos/{owner}/{repo_name}/releases/tags/{tag}"
 
     headers: dict[str, str] = {}
 
@@ -147,7 +149,7 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> list[Path] 
     release_data: dict[str, str] = response.json()
 
     deb_assets: list[dict[str, str]] | None = filter_assets(
-        release_data, distro, package_name=name
+        release_data, distro, package_name=package_name
     )
 
     if not deb_assets:
@@ -178,9 +180,9 @@ def get_latest_deb(host: str, owner: str, name: str, distro: str) -> list[Path] 
             true_pkg_name = extract_package_name(tmp_filepath)
         except Exception as e:  # noqa: BLE001
             print(
-                f"Failed to extract metadata from {original_filename}. Falling back to repo name '{name}'. Error: {e}"
+                f"Failed to extract metadata from {original_filename}. Falling back to repo name '{repo_name}'. Error: {e}"
             )
-            true_pkg_name = name
+            true_pkg_name = repo_name
 
         final_filename = f"{true_pkg_name}_{clean_version}_{debian_arch}.deb"
         final_filepath = os.path.join(target_dir, final_filename)

@@ -49,7 +49,11 @@ def run_polling_cycle(rebuild: bool = False):
                     )
 
                     downloaded_files: list[Path] | None = poller.get_latest_deb(
-                        repo.host, repo.owner, repo.repo_name, repo.distro
+                        repo.host,
+                        repo.owner,
+                        repo.repo_name,
+                        repo.distro,
+                        repo.package_name,
                     )
 
                     if not downloaded_files:
