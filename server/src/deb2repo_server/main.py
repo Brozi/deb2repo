@@ -40,7 +40,8 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 class RepoCreate(BaseModel):
     host: str
     owner: str
-    package_name: str
+    package_name: str | None = None
+    repo_name: str
     distro: str
 
     @field_validator("distro")
@@ -99,6 +100,7 @@ def add_repo(repo: RepoCreate, db: DbSession, token: AuthDep):
             host=repo.host,
             owner=repo.owner,
             package_name=repo.package_name,
+            repo_name=repo.repo_name,
             distro=repo.distro,
         )
         .first()
@@ -111,6 +113,7 @@ def add_repo(repo: RepoCreate, db: DbSession, token: AuthDep):
         host=repo.host,
         owner=repo.owner,
         package_name=repo.package_name,
+        repo_name=repo.repo_name,
         distro=repo.distro,
         last_tag=None,
     )

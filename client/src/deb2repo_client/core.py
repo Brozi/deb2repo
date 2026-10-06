@@ -30,11 +30,11 @@ class RepoClient:
             )
 
         payload = {
-            "owner": path_parts[0],
-            "repo": path_parts[1],
-            "package_name": package_override if package_override else path_parts[1],
-            "distro": distro,
             "host": parsed_url.netloc,
+            "owner": path_parts[0],
+            "repo_name": path_parts[1],
+            "package_name": package_override if package_override else None,
+            "distro": distro,
         }
 
         try:
