@@ -73,7 +73,7 @@ def cmd_list(args: argparse.Namespace) -> None:
         print(f"{'PACKAGE':<25} {'DISTRO':<15} {'SOURCE':<40}")
         print("-" * 80)
         for t in repos:
-            source = f"{t.get('owner')}/{t.get('repo')}"
+            source = f"{t.get('host')}/{t.get('owner')}/{t.get('package_name')}"
             print(
                 f"{t.get('package_name', 'N/A'):<25} {t.get('distro', 'N/A'):<15} {source:<40}"
             )
