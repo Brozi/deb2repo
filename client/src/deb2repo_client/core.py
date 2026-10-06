@@ -21,6 +21,9 @@ class RepoClient:
     def add_repo(
         self, url: str, distro: str, package_override: str | None = None
     ) -> dict[str, object]:
+        if not url.startswith(("http://", "https://")):
+            url = f"https://{url}"
+
         parsed_url = urlparse(url)
         path_parts = parsed_url.path.strip("/").split("/")
 
