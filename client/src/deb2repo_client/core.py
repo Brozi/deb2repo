@@ -64,3 +64,27 @@ class RepoClient:
             raise APIError(f"HTTP {status_code}: {error_data}")
         except requests.exceptions.RequestException as e:
             raise APIError(f"Network error: {e!s}")
+
+    def list_repos(self) -> list[dict] | dict[str, object]:
+        try:
+            response = requests.get(
+                f"{self.api_url}/api/repos/list", headers=self.headers, timeout=10
+            )
+            response.raise_for_status()
+            return cast(list[dict], response.json())
+        except requests.exceptions.HTTPError as e:
+            if e.response is not None:
+                if "application/json" in e.response.headers.get("Content-Type", ""):
+                    error_json = cast(dict[str, object], e.response.json())
+                    error_data = str(error_json.get("detail", str(e)))
+                else:
+                    error_data = str(e)
+
+                status_code = e.response.status_code
+            else:
+                error_data = str(e)
+                status_code = "Unknown"
+
+            raise APIError(f"HTTP {status_code}: {error_data}")
+        except requests.exceptions.RequestException as e:
+            raise APIError(f"Network error: {e!s}")
