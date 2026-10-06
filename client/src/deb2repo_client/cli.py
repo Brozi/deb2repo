@@ -3,6 +3,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 from deb2repo_client.core import APIError, RepoClient
 
@@ -54,10 +55,11 @@ def get_client() -> RepoClient:
 def cmd_add(args: argparse.Namespace) -> None:
     client = get_client()
     try:
-        result = client.add_repo(args.url, args.distro, args.package)
-        print(
-            f"Success: Added {result.get('owner')}/{result.get('repo')} to the build queue for '{args.distro}'"
-        )
+        result: dict[str, Any] = client.add_repo(args.url, args.distro, args.package)
+        result_data = cast(dict[str, Any], result.get("data", {}))
+        owner = result_data.get("owner")
+        repo = result_data.get("repo")
+        print(f"Success: Added {owner}/{repo} to the build queue for '{args.distro}'")
     except (ValueError, APIError) as e:
         print(f"Erorr: {e}", file=sys.stderr)
         sys.exit(1)
