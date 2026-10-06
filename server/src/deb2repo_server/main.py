@@ -1,6 +1,7 @@
 import re
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Annotated
+from typing import Annotated, Any, cast
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
@@ -29,13 +30,15 @@ class RepoCreate(BaseModel):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     scheduler = BackgroundScheduler()
+    polling_interval = cast(dict[str, Any], settings.polling_interval)
+
     scheduler.add_job(
-        run_polling_cycle, "interval", **settings.polling_interval, jitter=180
+        func=run_polling_cycle, trigger="interval", **polling_interval, jitter=180
     )
     scheduler.start()
-    print("Backgrund scheduler activated (Interval: {settings.polling_interval})")
+    print(f"Backgrund scheduler activated (Interval: {settings.polling_interval})")
 
     yield
 

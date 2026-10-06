@@ -58,9 +58,3 @@ dependencies = [
   "urllib3==2.8.0",
   "uvicorn==0.54.0",
 ]
-
-[tool.basedpyright]
-stubPath = "stubs"
-venvPath = "."
-venv = ".venv"
-pythonVersion = "3.12"
