@@ -39,6 +39,8 @@ def load_config() -> dict[str, str]:
             '{\n "url": "http://your-server-ip:8000", \n "token": "your-secure-token"\n}',
             file=sys.stderr,
         )
+        sys.exit(1)
+
     return {"url": api_url, "token": token}
 
 
