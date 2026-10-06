@@ -1,16 +1,40 @@
 import re
+import secrets
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated, Any, cast
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from deb2repo_server.config import settings
 from deb2repo_server.database import SessionLocal, TargetRepo
 from deb2repo_server.scheduler import run_polling_cycle
+
+security = HTTPBearer()
+
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verifies the incoming Bearer token against the server's configured secret."""
+
+    expected_token = settings.api_token
+
+    if not expected_token:
+        raise HTTPException(
+            status_code=500, detail="Server API token is not configured."
+        )
+
+    if not secrets.compare_digest(credentials.credentials, expected_token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return credentials.credentials
 
 
 class RepoCreate(BaseModel):
@@ -59,15 +83,16 @@ def get_db():
 
 
 DbSession = Annotated[Session, Depends(get_db)]
+AuthDep = Annotated[str, Depends(verify_token)]
 
 
 @app.get("/api/repos/list")
-def list_repos(db: DbSession):
+def list_repos(db: DbSession, token: AuthDep):
     return db.query(TargetRepo).all()
 
 
 @app.post("/api/repos/add", status_code=201)
-def add_repo(repo: RepoCreate, db: DbSession):
+def add_repo(repo: RepoCreate, db: DbSession, token: AuthDep):
     existing = (
         db.query(TargetRepo)
         .filter_by(
@@ -97,13 +122,43 @@ def add_repo(repo: RepoCreate, db: DbSession):
 
 
 @app.delete("/api/repos/delete/{repo_id}/")
-def remove_repo(repo_id: int, db: DbSession):
+def remove_repo(
+    repo_id: int, background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
+):
     repo = db.query(TargetRepo).filter_by(id=repo_id).first()
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
+
+    base_repo_path = Path(settings.base_repo_path).resolve()
+
+    if not base_repo_path.exists() or not base_repo_path.is_dir():
+        raise HTTPException(
+            status_code=500,
+            detail="The repo directory does not exist or is not a directory.",
+        )
+
+    safe_prefix = f"{repo.package_name}_"
+
+    removed_files = 0
+
+    for file in base_repo_path.glob(f"{safe_prefix}*.deb"):
+        if file.is_relative_to(base_repo_path) and file.is_file():
+            try:
+                file.unlink()
+                removed_files += 1
+            except OSError as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to delete file {file}: {e}",
+                )
     db.delete(repo)
     db.commit()
-    return {"message": f"Successfully stopped tracking repository with ID {repo_id}"}
+
+    background_tasks.add_task(run_polling_cycle, rebuild=True)
+    return {
+        "message": f"Successfully purged package '{repo.package_name}'",
+        "deleted_files_count": removed_files,
+    }
 
 
 @app.post("/api/sync/", status_code=202)
