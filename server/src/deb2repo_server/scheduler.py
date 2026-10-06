@@ -1,14 +1,25 @@
+import threading
+from typing import Any
+
 from deb2repo_server import poller, repo_builder
 from deb2repo_server.config import settings
 from deb2repo_server.database import SessionLocal, TargetRepo
 
+_POLL_LOCK = threading.Lock()
+
 
 def run_polling_cycle(rebuild: bool = False):
-    print("Starting background polling cycle...")
+
+    if not _POLL_LOCK.acquire(blocking=False):
+        print("Warning: Polling cycle already in progress. Skipping duplicate trigger.")
+        return
 
     db = SessionLocal()
 
     try:
+
+        print("Starting background polling cycle...")
+
         active_distros = db.query(TargetRepo.distro).distinct().all()
 
         for (distro_name,) in active_distros:
@@ -74,4 +85,6 @@ def run_polling_cycle(rebuild: bool = False):
                 print("No changes detected. Skipping rebuild.")
 
     finally:
+        _POLL_LOCK.release()
         db.close()
+        print("Polling cycle completed.")
