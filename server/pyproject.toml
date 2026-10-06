@@ -1,3 +1,28 @@
+
+[tool.basedpyright]
+stubPath = "stubs"
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+# Downgrade from strict/all to standard to allow rapid prototyping
+typeCheckingMode = "standard"
+# Explicitly allow 'Any' for dynamic JSON API boundaries
+reportExplicitAny = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E: pycodestyle (formatting), F: pyflakes (bugs), B: flake8-bugbear (design flaws)
+# I: isort (import sorting), UP: pyupgrade (modern syntax)
+select = ["E", "F", "B", "I", "UP"]
+# Ignore pedantic rules that do not prevent actual runtime failures
+ignore = []
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
