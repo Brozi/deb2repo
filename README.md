@@ -593,17 +593,17 @@ Please use GitHub Issues for bug reports and feature requests. Include relevant 
 
 Potential future improvements include:
 
-- Authentication and authorization for the administration API.
-- HTTPS and repository access-control guidance built into the deployment examples.
-- Support for GitLab, Gitea, and generic release feeds.
-- Webhook-triggered synchronization in addition to polling.
-- Native `InRelease` generation and stronger repository metadata validation.
-- Health, readiness, and metrics endpoints.
-- Structured logging and retry/backoff handling.
-- Automated database migrations.
-- Multi-tenant repository namespaces.
-- Published, versioned client releases and documented CLI commands.
-- Automated unit, integration, and container smoke tests.
+[*] Authentication and authorization for the administration API.
+[] HTTPS and repository access-control guidance built into the deployment examples.
+[] Support for GitLab, Gitea, and generic release feeds.
+[] Webhook-triggered synchronization in addition to polling.
+[] Native `InRelease` generation and stronger repository metadata validation.
+[] Health, readiness, and metrics endpoints.
+[] Structured logging and retry/backoff handling.
+[] Automated database migrations.
+[] Multi-tenant repository namespaces.
+[] Published, versioned client releases and documented CLI commands.
+[] Automated unit, integration, and container smoke tests.
 
 ## License
 
