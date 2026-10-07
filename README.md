@@ -9,7 +9,7 @@
 > **Project status:** deb2repo is under active development. Review the configuration, security, and operational notes below before exposing an instance to the public internet.
 
 > [!WARNING]
-> **Compatibility untested!**  
+> **Compatibility untested!**    
 > `deb2repo` is designed to work with other Git repository hostings, such as Gitlab, Codeberg and similar.
 > The compatibility however, is not guaranteed, and is **not** tested. Please report any bugs you might find when using `deb2repo` with
 > providers other than Github.
