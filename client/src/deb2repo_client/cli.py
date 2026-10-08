@@ -58,10 +58,12 @@ def cmd_add(args: argparse.Namespace) -> None:
         result: dict[str, Any] = client.add_repo(args.url, args.distro, args.package)
         result_data = cast(dict[str, Any], result.get("data", {}))
         owner = result_data.get("owner")
-        repo = result_data.get("repo")
+
+        repo = result_data.get("repo_name")
+
         print(f"Success: Added {owner}/{repo} to the build queue for '{args.distro}'")
-    except (ValueError, APIError) as e:
-        print(f"Erorr: {e}", file=sys.stderr)
+    except (ValueError, APIError) as error:
+        print(f"Error: {error}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -105,24 +107,34 @@ def cmd_import(args: argparse.Namespace) -> None:
     if not lines:
         print("Fatal: The provided file is empty.", file=sys.stderr)
         sys.exit(1)
+
     print(f"Starting import of {len(lines)} repositories for '{args.distro}'...")
 
-    success_count = 0
-    for i, url in enumerate(lines, start=1):
-        try:
-            result: dict[str, Any] = client.add_repo(url, args.distro)
-            result_data = cast(dict[str, Any], result.get("data", {}))
+    try:
+        result = client.import_repos(lines, args.distro)
 
-            owner = result_data.get("owner", "unknown")
-            repo = result_data.get("repo_name", "unknown")
+    except (ValueError, APIError) as error:
+        print(f"Import failed: {error}", file=sys.stderr)
+        sys.exit(1)
 
-            print(f"[{i}/{len(lines)}] Success: Queued {owner}/{repo}")
-            success_count += 1
-        except (ValueError, APIError) as e:
-            print(f"[{i}/{len(lines)}] Error adding '{url}': {e}", file=sys.stderr)
+    added = cast(list[dict[str, Any]], result.get("data", []))
+    skipped = cast(list[dict[str, Any]], result.get("skipped", []))
+
+    for repo in added:
+        print(
+            f"Queued {repo.get('owner', 'unknown')}/"
+            f"{repo.get('repo_name', 'unknown')}"
+        )
+
+    for repo in skipped:
+        print(
+            f"Skipped {repo.get('owner', 'unknown')} for "
+            f"{repo.get('distro', 'unknown')}: "
+            f"{repo.get('reason', 'unknown reason')}"
+        )
 
     print(
-        f"\nImport complete. Successfully queued {success_count}/{len(lines)} repositories."
+        f"\nImport complete. Successfully queued {len(added)}/{len(lines)} repositories in one poll."
     )
 
 
