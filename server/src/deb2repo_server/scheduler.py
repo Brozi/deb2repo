@@ -2,6 +2,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from deb2repo_server import poller, repo_builder
@@ -20,12 +21,25 @@ def _relative_artifact_path(filepath: Path) -> str:
 def _record_downloaded_artifacts(
     db: Session, repo: TargetRepo, release_tag: str, downloaded_files: list[Path]
 ) -> None:
+
+    artifacts_by_path = {
+        artifact.relative_path: artifact
+        for artifact in db.query(RepoArtifact).filter_by(target_repo_id=repo.id).all()
+    }
+
     for filepath in downloaded_files:
         if not filepath.is_file():
             continue
 
         relative_path = _relative_artifact_path(filepath)
         package_name = extract_package_name(filepath)
+
+        artifact = artifacts_by_path.get(relative_path)
+
+        if artifact:
+            artifact.package_name = package_name
+            artifact.release_tag = release_tag
+            continue
 
         artifact = (
             db.query(RepoArtifact)
@@ -36,19 +50,9 @@ def _record_downloaded_artifacts(
             .first()
         )
 
-        if artifact:
-            artifact.package_name = package_name
-            artifact.release_tag = release_tag
-            continue
+        db.add(artifact)
 
-        db.add(
-            RepoArtifact(
-                target_repo_id=repo.id,
-                package_name=package_name,
-                release_tag=release_tag,
-                relative_path=relative_path,
-            )
-        )
+        artifacts_by_path[relative_path] = artifact
 
 
 def _remove_missing_artifact_records(db: Session, distro: str) -> None:
@@ -136,14 +140,22 @@ def run_polling_cycle(rebuild: bool = False):
                     print(
                         f"New release found for {repo.host}/{repo.owner}/{repo.repo_name}: {latest_tag}"
                     )
+                    try:
 
-                    downloaded_files: list[Path] | None = poller.get_latest_deb(
-                        repo.host,
-                        repo.owner,
-                        repo.repo_name,
-                        repo.distro,
-                        repo.package_name,
-                    )
+                        downloaded_files: list[Path] | None = poller.get_latest_deb(
+                            repo.host,
+                            repo.owner,
+                            repo.repo_name,
+                            repo.distro,
+                            repo.package_name,
+                        )
+                    except Exception as error:
+
+                        print(
+                            f"Error polling "
+                            f"{repo.host}/{repo.owner}/{repo.repo_name}: {error}"
+                        )
+                        continue
 
                     if not downloaded_files:
                         print(
@@ -151,13 +163,24 @@ def run_polling_cycle(rebuild: bool = False):
                         )
                         continue
 
-                    _record_downloaded_artifacts(db, repo, latest_tag, downloaded_files)
-                    _remove_missing_artifact_records(db, repo.distro)
+                    try:
+                        _record_downloaded_artifacts(
+                            db, repo, latest_tag, downloaded_files
+                        )
+                        _remove_missing_artifact_records(db, repo.distro)
 
-                    repo.last_tag = latest_tag
+                        repo.last_tag = latest_tag
+
+                        db.commit()
+                    except SQLAlchemyError as error:
+                        db.rollback()
+                        print(
+                            "Error recording downloaded artifacts for "
+                            f"{repo.host}/{repo.owner}/{repo.repo_name}: {error}"
+                        )
+                        continue
+
                     needs_rebuild = True
-
-                db.commit()
 
                 if needs_rebuild:
                     _rebuild_distro(distro_name)

@@ -17,6 +17,26 @@ def get_deb_version(filepath: str) -> str:
         return "0"
 
 
+def get_deb_identity(filepath: str) -> tuple[str, str]:
+    """Return the package name and Debian architecture from package metadata"""
+    try:
+        result = subprocess.run(
+            ["dpkg-deb", "-f", filepath, "Package", "Architecture"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+    except subprocess.CalledProcessError as error:
+        raise ValueError(f"Unable to read .deb metadata: {error.stderr}") from error
+
+    values = result.stdout.splitlines()
+    if len(values) != 2 or not all(values):
+        raise ValueError(".deb metadata did not contain Package and Architecture")
+
+    return values[0], values[1]
+
+
 def compare_deb_versions(file_a: str, file_b: str) -> int:
     ver_a = get_deb_version(file_a)
     ver_b = get_deb_version(file_b)
@@ -38,15 +58,15 @@ def prune_obsolete_pkgs(pool_dir: str, keep_count: int = 2):
     search_pattern = os.path.join(pool_dir, "*.deb")
 
     for filepath in glob.glob(search_pattern):
-        filename = os.path.basename(filepath)
-        parts = filename.replace(".deb", "").split("-")
-        pkg_name = parts[0]
-        arch = parts[-1]
+        try:
+            pkg_name, arch = get_deb_identity(filepath)
+        except ValueError as error:
+            print(
+                f"Warning: Skipping retention for {os.path.basename(filepath)}: {error}"
+            )
+            continue
         group_key = (pkg_name, arch)
-
-        if group_key not in package_groups:
-            package_groups[group_key] = []
-        package_groups[group_key].append(filepath)
+        package_groups.setdefault(group_key, []).append(filepath)
 
     for (pkg, arch), files in package_groups.items():
         files.sort(key=cmp_to_key(compare_deb_versions), reverse=True)

@@ -1,3 +1,4 @@
+import filecmp
 import os
 import re
 from pathlib import Path
@@ -54,11 +55,21 @@ ARCH_MATRIX = {
 }
 
 
-def get_unstable_pattern() -> re.Pattern[str]:
-    raw_keywords = settings.blacklisted_keywords
+def _get_keyword_pattern(raw_keywords: str) -> re.Pattern[str] | None:
     keywords = [k.strip() for k in raw_keywords.split(",") if k.strip()]
-    regex_string = "|".join(keywords)
-    return re.compile(rf"({regex_string})", re.IGNORECASE)
+    if not keywords:
+        return None
+    return re.compile(
+        "|".join(re.escape(keyword) for keyword in keywords), re.IGNORECASE
+    )
+
+
+def get_unstable_tag_pattern() -> re.Pattern[str] | None:
+    return _get_keyword_pattern(settings.unstable_keywords)
+
+
+def get_asset_exclusion_pattern() -> re.Pattern[str] | None:
+    return _get_keyword_pattern(settings.asset_exclude_keywords)
 
 
 def get_known_codenames() -> list[str]:
@@ -78,7 +89,7 @@ def filter_assets(
     raw_hosted = settings.hosted_archs
     hosted_archs = [a.strip() for a in raw_hosted.split(",")]
 
-    unstable_pattern = get_unstable_pattern()
+    asset_exclusion_pattern = get_asset_exclusion_pattern()
     blacklisted_codenames = [dist for dist in known_codenames if dist != target_distro]
     valid_downloads = []
 
@@ -88,7 +99,7 @@ def filter_assets(
         if not filename.endswith(".deb"):
             continue
 
-        if unstable_pattern.search(filename):
+        if asset_exclusion_pattern and asset_exclusion_pattern.search(filename):
             print(f"Skipping packages containing blacklisted keywords: {filename}")
             continue
 
@@ -113,12 +124,12 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
         print(f"No releases found for {host}/{owner}/{name}")
         return None
 
-    unstable_pattern = get_unstable_pattern()
+    unstable_tag_pattern = get_unstable_tag_pattern()
 
     for entry in feed.entries:
         tag = entry["link"].split("/")[-1]
 
-        if not unstable_pattern.search(tag):
+        if not unstable_tag_pattern or not unstable_tag_pattern.search(tag):
             print(f"Latest stable release tag: {tag}")
             return tag
     print(f"No stable releases found for {host}/{owner}/{name}")
@@ -155,6 +166,8 @@ def get_latest_deb(
     clean_version = tag.lstrip("v")
     downloaded_paths: list[Path] = []
 
+    selected_paths: dict[Path, str] = {}
+
     for asset in deb_assets:
 
         download_url: str = asset["browser_download_url"]
@@ -184,10 +197,37 @@ def get_latest_deb(
 
             final_filename = f"{true_package_name}_{clean_version}_{debian_arch}.deb"
             final_filepath = target_dir / final_filename
-            os.replace(tmp_filepath, final_filepath)
+
+            selected_asset = selected_paths.get(final_filepath)
+
+            if selected_asset:
+                print(
+                    f"Skipping {original_filename}: it would overwrite the package selected "
+                    f"from {selected_asset}. Add a precise asset exclusion keyword if needed"
+                )
+                tmp_filepath.unlink(missing_ok=True)
+                continue
+
+            if final_filepath.exists():
+                if not filecmp.cmp(tmp_filepath, final_filepath, shallow=False):
+                    print(
+                        f"Skipping {original_filename}: {final_filepath.name} already "
+                        "exists with different contents."
+                    )
+                    tmp_filepath.unlink(missing_ok=True)
+                    continue
+
+                print(
+                    f"Reusing unchanged package already in pool: {final_filepath.name}"
+                )
+                tmp_filepath.unlink(missing_ok=True)
+
+            else:
+                os.replace(tmp_filepath, final_filepath)
+
+            selected_paths[final_filepath] = original_filename
 
             print(f"Successfully processed and saved {final_filepath}.")
-
             downloaded_paths.append(final_filepath)
 
         except Exception as error:  # noqa: BLE001

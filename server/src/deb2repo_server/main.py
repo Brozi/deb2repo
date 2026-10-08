@@ -8,7 +8,7 @@ from typing import Annotated, Any, cast
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from deb2repo_server.config import settings
@@ -49,7 +49,7 @@ class RepoCreate(BaseModel):
     @field_validator("distro")
     @classmethod
     def validate_distro(cls, value: str) -> str:
-        if not re.match(r"^[a-z0-9]+$", value):
+        if not re.fullmatch(r"^[a-z0-9]+$", value):
             raise ValueError(
                 "Distro must be lowercase alphanumeric (e.g., jammy, noble)"
             )
@@ -60,13 +60,18 @@ class RepoCreate(BaseModel):
     def validate_package_name(cls, value: str | None) -> str | None:
         if value is None:
             return None
+
         value = value.strip()
         if not value:
             return None
 
-        if not re.fullmatch(r"^[a-z0-9][a-z0-9+,-]*", value):
+        if not re.fullmatch(r"[a-z0-9][a-z0-9+,-]*", value):
             raise ValueError("Package name must be a valid Debian binary package name.")
         return value
+
+
+class RepoImport(BaseModel):
+    repos: list[RepoCreate] = Field(min_length=1)
 
 
 @asynccontextmanager
@@ -99,6 +104,21 @@ def get_db():
 
 DbSession = Annotated[Session, Depends(get_db)]
 AuthDep = Annotated[str, Depends(verify_token)]
+
+
+def _repo_key(repo: RepoCreate | TargetRepo) -> tuple[str, str, str, str]:
+    return repo.host, repo.owner, repo.repo_name, repo.distro
+
+
+def _serialize_repo(repo: TargetRepo) -> dict[str, str | int | None]:
+    return {
+        "id": repo.id,
+        "host": repo.host,
+        "owner": repo.owner,
+        "repo_name": repo.repo_name,
+        "distro": repo.distro,
+        "package_name": repo.package_name,
+    }
 
 
 @app.get("/api/repos/list")
@@ -163,7 +183,84 @@ def add_repo(
 
     background_tasks.add_task(run_polling_cycle, rebuild=True)
 
-    return {"message": "Repository added to the polling queue.", "data": new_repo}
+    return {
+        "message": "Repository added to the polling queue.",
+        "data": _serialize_repo(new_repo),
+    }
+
+
+@app.post("/api/repos/import", status_code=201)
+def import_repos(
+    repo_import: RepoImport,
+    background_tasks: BackgroundTasks,
+    db: DbSession,
+    token: AuthDep,
+):
+    existing_keys = {
+        (host, owner, repo_name, distro)
+        for host, owner, repo_name, distro in db.query(
+            TargetRepo.host, TargetRepo.owner, TargetRepo.repo_name, TargetRepo.distro
+        ).all()
+    }
+
+    seen_keys: set[tuple[str, str, str, str]] = set()
+    new_repos: list[TargetRepo] = []
+    skipped: list[dict[str, str]] = []
+
+    for repo in repo_import.repos:
+        key = _repo_key(repo)
+        source = f"{repo.host}/{repo.owner}/{repo.repo_name}"
+
+        if key in existing_keys:
+            skipped.append(
+                {
+                    "source": source,
+                    "distro": repo.distro,
+                    "reason": "already tracked",
+                }
+            )
+            continue
+
+        if key in seen_keys:
+            skipped.append(
+                {
+                    "source": source,
+                    "distro": repo.distro,
+                    "reason": "duplicate in request",
+                }
+            )
+            continue
+
+        seen_keys.add(key)
+        new_repos.append(
+            TargetRepo(
+                host=repo.host,
+                owner=repo.owner,
+                repo_name=repo.repo_name,
+                distro=repo.distro,
+                package_name=repo.package_name,
+                last_tag=None,
+            )
+        )
+
+    if new_repos:
+        db.add_all(new_repos)
+        db.commit()
+
+        for repo in new_repos:
+            db.refresh(repo)
+
+        background_tasks.add_task(run_polling_cycle, rebuild=True)
+
+    return {
+        "message": (
+            "Repository import queued."
+            if new_repos
+            else "No new repositories to import."
+        ),
+        "data": [_serialize_repo(repo) for repo in new_repos],
+        "skipped": skipped,
+    }
 
 
 def _resolve_artifact_path(
