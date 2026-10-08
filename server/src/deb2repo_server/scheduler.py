@@ -62,11 +62,9 @@ def run_polling_cycle(rebuild: bool = False):
                         )
                         continue
 
-                    if not repo.package_name:
-                        repo.package_name = downloaded_files[0].name.split("_")[0]
-                        print(
-                            f"Discovered and saved true package name: '{repo.package_name}'"
-                        )
+                    print(
+                        f"Discovered and saved true package name: '{repo.package_name}'"
+                    )
 
                     repo.last_tag = latest_tag
                     needs_rebuild = True
