@@ -103,7 +103,32 @@ AuthDep = Annotated[str, Depends(verify_token)]
 
 @app.get("/api/repos/list")
 def list_repos(db: DbSession, token: AuthDep):
-    return db.query(TargetRepo).all()
+    repos = db.query(TargetRepo).all()
+    response = []
+
+    for repo in repos:
+        packages = sorted(
+            {
+                artifact.package_name
+                for artifact in db.query(RepoArtifact)
+                .filter_by(target_repo_id=repo.id)
+                .all()
+            }
+        )
+
+        response.append(
+            {
+                "id": repo.id,
+                "host": repo.host,
+                "owner": repo.owner,
+                "repo_name": repo.repo_name,
+                "distro": repo.distro,
+                "package_name": repo.package_name,  # optional filter
+                "packages": packages,  # actual APT package names
+            }
+        )
+
+    return response
 
 
 @app.post("/api/repos/add", status_code=201)
