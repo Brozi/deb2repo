@@ -12,8 +12,8 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from deb2repo_server.config import settings
-from deb2repo_server.database import SessionLocal, TargetRepo
-from deb2repo_server.scheduler import run_polling_cycle
+from deb2repo_server.database import RepoArtifact, SessionLocal, TargetRepo
+from deb2repo_server.scheduler import rebuild_distro, run_polling_cycle
 
 security = HTTPBearer()
 
@@ -40,18 +40,33 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 class RepoCreate(BaseModel):
     host: str
     owner: str
-    package_name: str | None = None
     repo_name: str
     distro: str
 
+    # NULL means track all eligible packages from this source
+    package_name: str | None = None
+
     @field_validator("distro")
     @classmethod
-    def validate_distro(cls, v: str) -> str:
-        if not re.match(r"^[a-z0-9]+$", v):
+    def validate_distro(cls, value: str) -> str:
+        if not re.match(r"^[a-z0-9]+$", value):
             raise ValueError(
                 "Distro must be lowercase alphanumeric (e.g., jammy, noble)"
             )
-        return v
+        return value
+
+    @field_validator("package_name")
+    @classmethod
+    def validate_package_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            return None
+
+        if not re.fullmatch(r"^[a-z0-9][a-z0-9+,-]*", value):
+            raise ValueError("Package name must be a valid Debian binary package name.")
+        return value
 
 
 @asynccontextmanager
@@ -68,7 +83,6 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     scheduler.shutdown()
-
     print("Backgrund scheduler deactivated")
 
 
@@ -101,7 +115,6 @@ def add_repo(
         .filter_by(
             host=repo.host,
             owner=repo.owner,
-            package_name=repo.package_name,
             repo_name=repo.repo_name,
             distro=repo.distro,
         )
@@ -128,6 +141,28 @@ def add_repo(
     return {"message": "Repository added to the polling queue.", "data": new_repo}
 
 
+def _resolve_artifact_path(
+    repo_root: Path, pool_dir: Path, artifact: RepoArtifact
+) -> Path:
+    relative_path = Path(artifact.relative_path)
+
+    if relative_path.is_absolute():
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid absolute artifact path stored for artifact {artifact.id}",
+        )
+
+    artifact_path = (repo_root / relative_path).resolve()
+
+    if not artifact_path.is_relative_to(pool_dir):
+        raise HTTPException(
+            status_code=500,
+            detail=f"Artifact path escapes the expected pool directory: {artifact.id}",
+        )
+
+    return artifact_path
+
+
 @app.delete("/api/repos/delete/{repo_id}/")
 def remove_repo(
     repo_id: int, background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
@@ -136,34 +171,78 @@ def remove_repo(
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
 
-    base_repo_path = Path(settings.base_repo_path).resolve()
+    artifacts = (
+        db.query(RepoArtifact)
+        .filter_by(target_repo_id=repo.id)
+        .order_by(RepoArtifact.id)
+        .all()
+    )
 
-    if not base_repo_path.exists() or not base_repo_path.is_dir():
+    # Don't delete a legacy record while leaving unowned files behind
+    if repo.last_tag and not artifacts:
         raise HTTPException(
             status_code=500,
-            detail="The repo directory does not exist or is not a directory.",
+            detail=(
+                "This repository has no artifact manifest."
+                "Backfill or review its files before deleting it."
+            ),
         )
 
-    safe_prefix = f"{repo.package_name}_"
+    repo_root = Path(settings.base_repo_path).resolve()
+    pool_dir = (repo_root / "pool" / repo.distro / "main").resolve()
+
+    if artifacts and (not repo_root.exists() or not repo_root.is_dir()):
+        raise HTTPException(
+            status_code=500,
+            detail="The repository directory does not exist or is not a directory.",
+        )
 
     removed_files = 0
 
-    for file in base_repo_path.glob(f"{safe_prefix}*.deb"):
-        if file.is_relative_to(base_repo_path) and file.is_file():
-            try:
-                file.unlink()
-                removed_files += 1
-            except OSError as e:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to delete file {file}: {e}",
-                )
+    for artifact in artifacts:
+        artifact_path = _resolve_artifact_path(repo_root, pool_dir, artifact)
+
+        shared_artifact = (
+            db.query(RepoArtifact)
+            .filter(
+                RepoArtifact.relative_path == artifact.relative_path,
+                RepoArtifact.target_repo_id != repo.id,
+            )
+            .first()
+        )
+
+        if shared_artifact:
+            continue
+
+        if not artifact_path.exists():
+            continue
+
+        if not artifact_path.is_file():
+            raise HTTPException(
+                status_code=500,
+                detail=f"Artifact path is not a regular file: {artifact_path}",
+            )
+
+        try:
+            artifact_path.unlink()
+            removed_files += 1
+        except OSError as error:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to delete artifact {artifact_path}: {error}",
+            )
+
+    db.query(RepoArtifact).filter_by(target_repo_id=repo.id).delete(
+        synchronize_session=False
+    )
     db.delete(repo)
     db.commit()
 
-    background_tasks.add_task(run_polling_cycle)
+    # This works even when the removed source was the final source for its distro
+    background_tasks.add_task(rebuild_distro, repo.distro)
+
     return {
-        "message": f"Successfully purged package '{repo.repo_name}'",
+        "message": f"Successfully purged repository '{repo.repo_name}'.",
         "deleted_files_count": removed_files,
     }
 
@@ -199,10 +278,8 @@ def force_redownload_all(
 
     for repo in repos:
         repo.last_tag = None  # Reset last_tag to force redownload
-        db.add(repo)
 
     db.commit()
-
     background_tasks.add_task(run_polling_cycle)
 
     return {

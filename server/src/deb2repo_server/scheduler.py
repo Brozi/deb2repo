@@ -1,13 +1,94 @@
-from pathlib import Path
 import threading
+from pathlib import Path
 from typing import Any
+
+from sqlalchemy.orm import Session
 
 from deb2repo_server import poller, repo_builder
 from deb2repo_server.config import settings
-from deb2repo_server.database import SessionLocal, TargetRepo
+from deb2repo_server.database import RepoArtifact, SessionLocal, TargetRepo
 from deb2repo_server.parser import extract_package_name
 
 _POLL_LOCK = threading.Lock()
+
+
+def _relative_artifact_path(filepath: Path) -> str:
+    repo_root = Path(settings.base_repo_path).resolve()
+    return str(filepath.resolve().relative_to(repo_root))
+
+
+def _record_downloaded_artifacts(
+    db: Session, repo: TargetRepo, release_tag: str, downloaded_files: list[Path]
+) -> None:
+    for filepath in downloaded_files:
+        if not filepath.is_file():
+            continue
+
+        relative_path = _relative_artifact_path(filepath)
+        package_name = extract_package_name(filepath)
+
+        artifact = (
+            db.query(RepoArtifact)
+            .filter_by(
+                target_repo_id=repo.id,
+                relative_path=relative_path,
+            )
+            .first()
+        )
+
+        if artifact:
+            artifact.package_name = package_name
+            artifact.release_tag = release_tag
+            continue
+
+        db.add(
+            RepoArtifact(
+                target_repo_id=repo.id,
+                package_name=package_name,
+                release_tag=release_tag,
+                relative_path=relative_path,
+            )
+        )
+
+
+def _remove_missing_artifact_records(db: Session, distro: str) -> None:
+    repo_root = Path(settings.base_repo_path).resolve()
+
+    if not repo_root.is_dir():
+        return
+
+    artifacts = (
+        db.query(RepoArtifact)
+        .join(TargetRepo)
+        .filter(TargetRepo.distro == distro)
+        .all()
+    )
+
+    for artifact in artifacts:
+        artifact_path = repo_root / artifact.relative_path
+        if not artifact_path.is_file():
+            db.delete(artifact)
+
+
+def _rebuild_distro(distro: str) -> None:
+    print(f"Rebuilding index for {distro}...")
+
+    try:
+        repo_builder.generate_compressed_index(settings.base_repo_path, distro)
+        repo_builder.generate_and_sign_release(
+            settings.base_repo_path, settings.gpg_key_id, distro, settings.repo_origin
+        )
+        print(f"Successfully finalized repository update for {distro}")
+    except RuntimeError as error:
+        print(f"CRITICAL ERROR: Failed to rebuild repo for {distro}: {error}")
+    except Exception as error:
+        print(f"Unexpected error during repo rebuild for {distro}: {error}")
+
+
+def rebuild_distro(distro: str) -> None:
+    """Rebuild one distro even if it no longer has a tracked upstream repository"""
+    with _POLL_LOCK:
+        _rebuild_distro(distro)
 
 
 def run_polling_cycle(rebuild: bool = False):
@@ -24,6 +105,9 @@ def run_polling_cycle(rebuild: bool = False):
         try:
 
             active_distros = db.query(TargetRepo.distro).distinct().all()
+            if not active_distros:
+                print("No active distributions found. Skipping rebuild.")
+                return
 
             for (distro_name,) in active_distros:
                 repos_for_distro = (
@@ -40,6 +124,11 @@ def run_polling_cycle(rebuild: bool = False):
                     latest_tag = poller.get_latest_tag(
                         repo.host, repo.owner, repo.repo_name
                     )
+                    if latest_tag is None:
+                        print(
+                            f"No stable release tag for {repo.host}/{repo.owner}/{repo.repo_name}."
+                        )
+                        continue
 
                     if latest_tag == repo.last_tag:
                         continue
@@ -62,9 +151,8 @@ def run_polling_cycle(rebuild: bool = False):
                         )
                         continue
 
-                    print(
-                        f"Discovered and saved true package name: '{repo.package_name}'"
-                    )
+                    _record_downloaded_artifacts(db, repo, latest_tag, downloaded_files)
+                    _remove_missing_artifact_records(db, repo.distro)
 
                     repo.last_tag = latest_tag
                     needs_rebuild = True
@@ -72,40 +160,9 @@ def run_polling_cycle(rebuild: bool = False):
                 db.commit()
 
                 if needs_rebuild:
-                    repo_root = settings.base_repo_path
-                    print(f"Changes detected for {distro_name}. Rebuilding index...")
-
-                    try:
-
-                        repo_builder.generate_compressed_index(repo_root, distro_name)
-
-                        repo_builder.generate_and_sign_release(
-                            repo_root,
-                            settings.gpg_key_id,
-                            distro_name,
-                            settings.repo_origin,
-                        )
-
-                        print(
-                            f"Successfully finalized repository update for {distro_name}."
-                        )
-
-                    except RuntimeError as e:
-                        print(
-                            f"CRITICAL ERROR: Failed to rebuild repo for {distro_name}: {e}"
-                        )
-
-                    except Exception as e:  # noqa: BLE001
-                        print(
-                            f"Unexpected error during repo rebuild for {distro_name}: {e}"
-                        )
-
+                    _rebuild_distro(distro_name)
                 else:
-                    print("No changes detected. Skipping rebuild.")
-
-            else:
-                if not active_distros:
-                    print("No active distributions found. Skipping rebuild")
+                    print("No changes detected. Skipping rebuild for {distro_name}.")
         finally:
             db.close()
 

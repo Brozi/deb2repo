@@ -67,7 +67,7 @@ def get_known_codenames() -> list[str]:
 
 
 def filter_assets(
-    release_data: dict[str, Any], target_distro: str, package_name: str | None
+    release_data: dict[str, Any], target_distro: str
 ) -> list[dict[str, Any]] | None:
     assets: list[dict[str, Any]] = release_data.get("assets", [])
     known_codenames = get_known_codenames()
@@ -94,9 +94,6 @@ def filter_assets(
 
         if any(bad_dist in filename for bad_dist in blacklisted_codenames):
             print(f"Skipping package for other distros: {filename}")
-            continue
-
-        if package_name and package_name.lower() not in filename:
             continue
 
         for search_term, debian_arch in ARCH_MATRIX.items():
@@ -131,7 +128,7 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
 def get_latest_deb(
     host: str, owner: str, repo_name: str, distro: str, package_name: str | None
 ) -> list[Path] | None:
-    target_dir = os.path.join(settings.base_repo_path, "pool", distro, "main")
+    target_dir = Path(settings.base_repo_path) / "pool" / distro / "main"
 
     tag = get_latest_tag(host, owner, repo_name)
     if not tag:
@@ -148,52 +145,61 @@ def get_latest_deb(
     response.raise_for_status()
     release_data: dict[str, str] = response.json()
 
-    deb_assets: list[dict[str, str]] | None = filter_assets(
-        release_data, distro, package_name=package_name
-    )
+    deb_assets: list[dict[str, str]] | None = filter_assets(release_data, distro)
 
     if not deb_assets:
         print(f"No .deb packages found in release {tag}")
         return
 
-    os.makedirs(target_dir, exist_ok=True)
+    target_dir.mkdir(parents=True, exist_ok=True)
     clean_version = tag.lstrip("v")
     downloaded_paths: list[Path] = []
 
     for asset in deb_assets:
 
         download_url: str = asset["browser_download_url"]
-        original_filename: str = asset["name"]
-        debian_arch: str = asset.get("debian_arch", "all")
+        original_filename: str = Path(str(asset["name"])).name
+        debian_arch: str = str(asset["debian_arch"])
 
-        tmp_filename = f".tmp_{original_filename}"
-        tmp_filepath = os.path.join(target_dir, tmp_filename)
+        tmp_filepath = target_dir / f".tmp_{original_filename}"
 
         print(f"Downloading {original_filename} as to {target_dir}...")
-
-        with requests.get(download_url, stream=True, headers=headers) as r:
-            r.raise_for_status()
-            with open(tmp_filepath, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    _ = f.write(chunk)
         try:
-            true_pkg_name = extract_package_name(tmp_filepath)
-        except Exception as e:  # noqa: BLE001
+
+            with requests.get(download_url, stream=True, headers=headers) as r:
+                r.raise_for_status()
+                with open(tmp_filepath, "wb") as output:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        _ = output.write(chunk)
+
+            true_package_name = extract_package_name(tmp_filepath)
+
+            if package_name and true_package_name != package_name:
+                print(
+                    f"Skipping {original_filename}: package metadata is "
+                    f"'{true_package_name}', not requested package '{package_name}'."
+                )
+                tmp_filepath.unlink(missing_ok=True)
+                continue
+
+            final_filename = f"{true_package_name}_{clean_version}_{debian_arch}.deb"
+            final_filepath = target_dir / final_filename
+            os.replace(tmp_filepath, final_filepath)
+
+            print(f"Successfully processed and saved {final_filepath}.")
+
+            downloaded_paths.append(final_filepath)
+
+        except Exception as error:  # noqa: BLE001
+            tmp_filepath.unlink(missing_ok=True)
             print(
-                f"Failed to extract metadata from {original_filename}. Falling back to repo name '{repo_name}'. Error: {e}"
+                f"Skipping {original_filename}: could not validate package metadatar: {error}"
             )
-            true_pkg_name = repo_name
 
-        final_filename = f"{true_pkg_name}_{clean_version}_{debian_arch}.deb"
-        final_filepath = os.path.join(target_dir, final_filename)
-
-        os.replace(tmp_filepath, final_filepath)
-
-        print(f"Successfully processed and saved {final_filename} to {target_dir}.")
-
-        downloaded_paths.append(Path(final_filepath))
+    if not downloaded_paths:
+        return None
 
     print("Running garbage collection...")
-    prune_obsolete_pkgs(target_dir, settings.keep_count)
+    prune_obsolete_pkgs(str(target_dir), settings.keep_count)
 
     return downloaded_paths
