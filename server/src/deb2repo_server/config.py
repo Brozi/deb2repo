@@ -16,7 +16,9 @@ class Settings(BaseSettings):
         "buster,bullseye,bookworm,trixie,sid,forky,jammy,noble,questing,resolute"
     )
 
-    unstable_keywords: str = "rc,alpha,beta,dev,pre,nightly,test,snapshot"
+    blacklisted_keywords: str = (
+        "rc,alpha,beta,dev,pre,nightly,test,snapshot,musl,termux"
+    )
     polling_interval: str | dict[str, int] = Field(default={"minutes": 15})
     api_token: str | None = None
 

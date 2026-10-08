@@ -55,7 +55,7 @@ ARCH_MATRIX = {
 
 
 def get_blacklisted_pattern() -> re.Pattern[str]:
-    raw_keywords = settings.unstable_keywords
+    raw_keywords = settings.blacklisted_keywords
     keywords = [k.strip() for k in raw_keywords.split(",") if k.strip()]
     regex_string = "|".join(keywords)
     return re.compile(rf"({regex_string})", re.IGNORECASE)
