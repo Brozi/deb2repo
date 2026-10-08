@@ -140,7 +140,9 @@ def cmd_import(args: argparse.Namespace) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="deb2repo admin cli client")
+    parser = argparse.ArgumentParser(
+        description="Deb2repo CLI client for interacting with the APT repo."
+    )
 
     parser.add_argument(
         "-t", "--tui", action="store_true", help="Launch the TUI client"
@@ -156,7 +158,7 @@ def main():
     add_parser.add_argument(
         "-p",
         "--package",
-        help="Override package name (default: inferred from the .deb package",
+        help="Explicitly name the package to track. None tracks all.",
     )
     add_parser.set_defaults(func=cmd_add)
 
