@@ -36,18 +36,16 @@ def _record_downloaded_artifacts(
 
         artifact = artifacts_by_path.get(relative_path)
 
-        if artifact:
+        if artifact is not None:
             artifact.package_name = package_name
             artifact.release_tag = release_tag
             continue
 
-        artifact = (
-            db.query(RepoArtifact)
-            .filter_by(
-                target_repo_id=repo.id,
-                relative_path=relative_path,
-            )
-            .first()
+        artifact = RepoArtifact(
+            target_repo_id=repo.id,
+            package_name=package_name,
+            release_tag=release_tag,
+            relative_path=relative_path,
         )
 
         db.add(artifact)
