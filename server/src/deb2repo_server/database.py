@@ -31,10 +31,12 @@ class RepoArtifact(Base):
     """An exact .deb file downloaded on behalf of one tracked upstream repository"""
 
     __tablename__ = "repo_artifacts"
-    __table_args__ = UniqueConstraint(
-        "target_repo_id",
-        "relative_path",
-        name="uq_repo_artifact_target_repo_path",
+    __table_args__ = (
+        UniqueConstraint(
+            "target_repo_id",
+            "relative_path",
+            name="uq_repo_artifact_target_repo_path",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
