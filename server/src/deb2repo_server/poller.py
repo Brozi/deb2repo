@@ -54,7 +54,7 @@ ARCH_MATRIX = {
 }
 
 
-def get_blacklisted_pattern() -> re.Pattern[str]:
+def get_unstable_pattern() -> re.Pattern[str]:
     raw_keywords = settings.blacklisted_keywords
     keywords = [k.strip() for k in raw_keywords.split(",") if k.strip()]
     regex_string = "|".join(keywords)
@@ -78,7 +78,7 @@ def filter_assets(
     raw_hosted = settings.hosted_archs
     hosted_archs = [a.strip() for a in raw_hosted.split(",")]
 
-    blacklisted_pattern = get_blacklisted_pattern()
+    unstable_pattern = get_unstable_pattern()
     blacklisted_codenames = [dist for dist in known_codenames if dist != target_distro]
     valid_downloads = []
 
@@ -88,7 +88,7 @@ def filter_assets(
         if not filename.endswith(".deb"):
             continue
 
-        if blacklisted_pattern.search(filename):
+        if unstable_pattern.search(filename):
             print(f"Skipping packages containing blacklisted keywords: {filename}")
             continue
 
@@ -113,12 +113,12 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
         print(f"No releases found for {host}/{owner}/{name}")
         return None
 
-    blacklisted_pattern = get_blacklisted_pattern()
+    unstable_pattern = get_unstable_pattern()
 
     for entry in feed.entries:
         tag = entry["link"].split("/")[-1]
 
-        if not blacklisted_pattern.search(tag):
+        if not unstable_pattern.search(tag):
             print(f"Latest stable release tag: {tag}")
             return tag
     print(f"No stable releases found for {host}/{owner}/{name}")
