@@ -98,7 +98,7 @@ def cmd_import(args: argparse.Namespace) -> None:
     if not lines:
         print("Fatal: The provided file is empty.", file=sys.stderr)
         sys.exit(1)
-    print(f"Starting import of len(lines) repositories for '{args.distro}'...")
+    print(f"Starting import of {len(lines)} repositories for '{args.distro}'...")
 
     success_count = 0
     for i, url in enumerate(lines, start=1):
@@ -178,6 +178,8 @@ def main():
         cmd_add(args)
     elif args.command == "list":
         cmd_list(args)
+    elif args.command == "import":
+        cmd_import(args)
 
 
 if __name__ == "__main__":
