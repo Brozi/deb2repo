@@ -74,11 +74,18 @@ def cmd_list(args: argparse.Namespace) -> None:
             return
         print(f"{'PACKAGE':<25} {'DISTRO':<15} {'SOURCE':<40}")
         print("-" * 80)
-        for t in repos:
-            source = f"{t.get('host')}/{t.get('owner')}/{t.get('repo_name')}"
-            print(
-                f"{t.get('package_name', 'N/A'):<25} {t.get('distro', 'N/A'):<15} {source:<40}"
+        for tracked_repo in repos:
+            packages = tracked_repo.get("packages") or []
+            package_display = ", ".join(packages) if packages else "Pending first sync"
+            distro = tracked_repo.get("distro") or "N/A"
+            source = (
+                f"{tracked_repo.get('host') or 'unknown'}/"
+                f"{tracked_repo.get('owner') or 'unknown'}/"
+                f"{tracked_repo.get('repo_name') or 'unknown'}"
             )
+
+            print(f"{package_display:<25} {distro:<15} {source:<40}")
+
     except APIError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
