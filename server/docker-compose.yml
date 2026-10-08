@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     ports:
-      - "8889:8000" # Expose FastAPI admin interface
+      - "127.0.0.1:8889:8000"
     volumes:
       - ./state:/app/state # Persistent SQLite database
       - ./repo:/app/repo # The target Debian repository
