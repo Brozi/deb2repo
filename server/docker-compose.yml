@@ -8,8 +8,8 @@ services:
     ports:
       - "127.0.0.1:8889:8000"
     volumes:
-      - ./state:/app/state # Persistent SQLite database
-      - ./repo:/app/repo # The target Debian repository
+      - ${STATE_DIR}:/app/state # Persistent SQLite database
+      - ${REPO_DIR}:/app/repo # The target Debian repository
       - ~/.gnupg:/root/.gnupg # Bind the host's GPG keychain
 
   repo-server:
@@ -19,5 +19,5 @@ services:
     ports:
       - "8888:80" # Expose the APT repository to clients
     volumes:
-      - ./repo:/usr/share/nginx/html:ro # Read-only access for Nginx
+      - ${REPO_DIR}:/usr/share/nginx/html:ro # Read-only access for Nginx
       - ./repo-nginx.conf:/etc/nginx/conf.d/default.conf:ro
