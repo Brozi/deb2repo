@@ -12,9 +12,9 @@ services:
       - ${REPO_DIR}:/app/repo # The target Debian repository
       - ~/.gnupg:/root/.gnupg # Bind the host's GPG keychain
 
-  repo-server:
+  landing-page:
     image: nginx:alpine
-    container_name: repo-server
+    container_name: deb2repo-landing
     restart: unless-stopped
     ports:
       - "8888:80" # Expose the APT repository to clients
