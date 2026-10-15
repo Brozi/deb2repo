@@ -1,6 +1,6 @@
 import re
 
-from pydantic import Field, field_validator
+from pydantic import Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     github_token: str | None = None
     gpg_key_id: str
     repo_origin: str = "My Custom Repo"
-    base_repo_path: str = "/app/repo"
     db_url: str = "sqlite:////app/state/repo_state.db"
     keep_count: int = 2
     hosted_archs: str = "amd64, arm64, i386, all"
@@ -22,6 +21,11 @@ class Settings(BaseSettings):
 
     polling_interval: str | dict[str, int] = Field(default={"minutes": 15})
     api_token: str | None = None
+
+    @computed_field
+    @property
+    def repo_path(self) -> str:
+        return "/app/repo"
 
     @field_validator("polling_interval", mode="before")
     @classmethod

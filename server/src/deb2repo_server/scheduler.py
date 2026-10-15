@@ -1,6 +1,5 @@
 import threading
 from pathlib import Path
-from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -14,7 +13,7 @@ _POLL_LOCK = threading.Lock()
 
 
 def _relative_artifact_path(filepath: Path) -> str:
-    repo_root = Path(settings.base_repo_path).resolve()
+    repo_root = Path(settings.repo_path).resolve()
     return str(filepath.resolve().relative_to(repo_root))
 
 
@@ -54,7 +53,7 @@ def _record_downloaded_artifacts(
 
 
 def _remove_missing_artifact_records(db: Session, distro: str) -> None:
-    repo_root = Path(settings.base_repo_path).resolve()
+    repo_root = Path(settings.repo_path).resolve()
 
     if not repo_root.is_dir():
         return
@@ -76,9 +75,9 @@ def _rebuild_distro(distro: str) -> None:
     print(f"Rebuilding index for {distro}...")
 
     try:
-        repo_builder.generate_compressed_index(settings.base_repo_path, distro)
+        repo_builder.generate_compressed_index(settings.repo_path, distro)
         repo_builder.generate_and_sign_release(
-            settings.base_repo_path, settings.gpg_key_id, distro, settings.repo_origin
+            settings.repo_path, settings.gpg_key_id, distro, settings.repo_origin
         )
         print(f"Successfully finalized repository update for {distro}")
     except RuntimeError as error:

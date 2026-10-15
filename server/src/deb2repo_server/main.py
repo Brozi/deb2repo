@@ -310,7 +310,7 @@ def remove_repo(
             ),
         )
 
-    repo_root = Path(settings.base_repo_path).resolve()
+    repo_root = Path(settings.repo_path).resolve()
     pool_dir = (repo_root / "pool" / repo.distro / "main").resolve()
 
     if artifacts and (not repo_root.exists() or not repo_root.is_dir()):

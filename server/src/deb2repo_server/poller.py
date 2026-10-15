@@ -139,7 +139,7 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
 def get_latest_deb(
     host: str, owner: str, repo_name: str, distro: str, package_name: str | None
 ) -> list[Path] | None:
-    target_dir = Path(settings.base_repo_path) / "pool" / distro / "main"
+    target_dir = Path(settings.repo_path) / "pool" / distro / "main"
 
     tag = get_latest_tag(host, owner, repo_name)
     if not tag:
