@@ -144,6 +144,7 @@ def list_repos(db: DbSession, token: AuthDep):
                 "repo_name": repo.repo_name,
                 "distro": repo.distro,
                 "package_name": repo.package_name,  # optional filter
+                "version": repo.last_tag,
                 "packages": packages,  # actual APT package names
             }
         )
