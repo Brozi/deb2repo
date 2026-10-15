@@ -140,14 +140,18 @@ def cmd_import(args: argparse.Namespace) -> None:
     )
 
 
+def cmd_delete(args: argparse.Namespace) -> None:
+    pass
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Deb2repo CLI client for interacting with the APT repo."
     )
 
-    parser.add_argument(
-        "-t", "--tui", action="store_true", help="Launch the TUI client"
-    )
+    # parser.add_argument(
+    #     "-t", "--tui", action="store_true", help="Launch the TUI client"
+    # )
 
     subparsers = parser.add_subparsers(dest="command")
 
@@ -188,10 +192,10 @@ def main():
 
     args = parser.parse_args()
 
-    if args.tui:
-        from deb2repo_client.tui import main as tui_main
-
-        sys.exit(tui_main())
+    # if args.tui:
+    #     from deb2repo_client.tui import main as tui_main
+    #
+    #     sys.exit(tui_main())
 
     if not args.command:
         parser.print_help()
