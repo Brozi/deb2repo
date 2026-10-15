@@ -74,7 +74,7 @@ def cmd_list(args: argparse.Namespace) -> None:
         if not repos:
             print("No packages are currently being tracked")
             return
-        print(f"{'PACKAGE':<25} {'DISTRO':<15} {'SOURCE':<40} {'LAST TAG':<10}")
+        print(f"{'PACKAGE':<25} {'LAST TAG':<10} {'DISTRO':<15} {'SOURCE':<40}")
         print("-" * 80)
         for tracked_repo in repos:
             distro = tracked_repo.get("distro") or "N/A"
