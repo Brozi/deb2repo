@@ -218,6 +218,10 @@ def main():
         action="store_true",
     )
 
+    remove_parser = subparsers.add_parser(
+        "remove",
+    )
+
     args = parser.parse_args()
 
     # if args.tui:
