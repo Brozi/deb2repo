@@ -286,8 +286,8 @@ def _resolve_artifact_path(
     return artifact_path
 
 
-@app.delete("/api/repos/delete/{repo_id}")
-def delete_repo(
+@app.delete("/api/repos/remove/{repo_id}")
+def remove_repo(
     repo_id: int, background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
 ):
     repo = db.query(TargetRepo).filter_by(id=repo_id).first()
