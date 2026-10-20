@@ -109,7 +109,7 @@ class RepoClient:
         except requests.exceptions.RequestException as error:
             raise APIError(f"Network error: {error!s}") from error
 
-    def remove_repo(self, repo_id) -> str | dict[str, str]:
+    def delete_repo(self, repo_id) -> str | dict[str, str]:
         try:
             response = requests.delete(
                 f"{self.api_url}/api/repos/delete/{repo_id}",
