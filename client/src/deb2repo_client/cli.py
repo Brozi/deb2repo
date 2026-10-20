@@ -139,7 +139,7 @@ def cmd_sync(args: argparse.Namespace) -> None:
             repo = client.resolve_repo(
                 args.name, getattr(args, "distro", None), getattr(args, "host", None)
             )
-            repo_id = repo.get("id")
+            repo_id = cast(int, repo.get("id"))
             result = client.sync_repo(int(repo_id))
             print(result.get("message", f"Sync triggered for {args.name}"))
         else:
@@ -257,7 +257,7 @@ def main():
     )
 
     remove_parser.add_argument(
-        "-h",
+        "-H",
         "--host",
         help="Disambiguate when the same repo is tracked from multiple hosts (e.g., github.com, gitlab.com).",
     )
@@ -281,7 +281,7 @@ def main():
     )
 
     sync_parser.add_argument(
-        "-h",
+        "-H",
         "--host",
         help="Disambiguate when the same repo is tracked from multiple hosts (e.g., github.com, gitlab.com).",
     )
