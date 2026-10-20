@@ -92,7 +92,7 @@ class RepoClient:
                 f"'{name}' matches multiple tracked repos. Use --distro and/or --host to disambiguate:\n{options}"
             )
 
-        return cast(dict[str, object], exact_matches[0]), is_partial
+        return cast(dict[str, object], matches[0]), is_partial
 
     def add_repo(
         self, url: str, distro: str, package_override: str | None = None
