@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from deb2repo_server import poller, repo_builder
 from deb2repo_server.config import settings
 from deb2repo_server.database import RepoArtifact, SessionLocal, TargetRepo
-from deb2repo_server.parser import extract_package_name
+from deb2repo_server.utils import extract_package_name
 
 _POLL_LOCK = threading.Lock()
 
