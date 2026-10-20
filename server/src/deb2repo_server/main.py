@@ -383,6 +383,20 @@ def force_polling_cycle(background_tasks: BackgroundTasks, token: AuthDep):
     return {"message": "Background sync triggered. Check Docker logs for progress."}
 
 
+@app.post("/api/repos/sync/{repo_id}", status_code=202)
+def force_repo_polling_cycle(
+    repo_id: int, background_tasks: BackgroundTasks, token: AuthDep
+):
+    """
+    Bypasses the 15-minute APScheduler interval and immediately
+    forces the polling loop to execute in the background for a given repo
+    """
+    background_tasks.add_task(run_polling_cycle, repo_id=repo_id)
+    return {
+        "message": f"Background sync for {repo_id} triggered. Check Docker logs for progress."
+    }
+
+
 @app.post("/api/repos/rebuild", status_code=202)
 def force_package_rebuild(background_tasks: BackgroundTasks, token: AuthDep):
     """
@@ -392,7 +406,7 @@ def force_package_rebuild(background_tasks: BackgroundTasks, token: AuthDep):
     return {"message": "Background sync triggered. Check Docker logs for progress."}
 
 
-@app.post("/api/repos/redownload/all", status_code=202)
+@app.post("/api/repos/redownload", status_code=202)
 def force_redownload_all(
     background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
 ):
