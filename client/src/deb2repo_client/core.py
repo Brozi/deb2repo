@@ -37,7 +37,7 @@ class RepoClient:
 
     def resolve_repo(
         self, name: str, distro: str | None, host: str | None
-    ) -> dict[str, object]:
+    ) -> tuple[dict[str, object], bool]:
         """
         Resolves a human friendly name like 'bat' or 'sharkdp/bat' to a single tracked repo.
         Raises ValueError if the name is ambiguous or not found.
@@ -48,13 +48,30 @@ class RepoClient:
         if "/" in name:
             parts = name.strip("/").split("/")
             owner, repo_name = parts[-2], parts[-1]
-            matches = [
+            exact_matches = [
                 r
                 for r in repos
                 if r.get("owner") == owner and r.get("repo_name") == repo_name
             ]
+            partial_matches = [
+                r
+                for r in repos
+                if r.get("owner") == owner and repo_name in str(r.get("repo_name", ""))
+            ]
+
         else:
-            matches = [r for r in repos if r.get("repo_name") == name]
+            repo_name = name
+            exact_matches = [r for r in repos if r.get("repo_name") == repo_name]
+            partial_matches = [
+                r for r in repos if repo_name in str(r.get("repo_name", ""))
+            ]
+
+        if exact_matches:
+            matches = exact_matches
+            is_partial = False
+        else:
+            matches = partial_matches
+            is_partial = True
 
         if host and len(matches) > 1:
             matches = [r for r in matches if r.get("host") == host]
@@ -65,17 +82,17 @@ class RepoClient:
         if len(matches) == 0:
             raise ValueError(f"No tracked repo matching '{name}'")
 
-        if len(matches) > 1:
+        if len(exact_matches) > 1:
             options = "\n".join(
                 f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} ({r.get('distro')})"
-                for r in matches
+                for r in exact_matches
             )
 
             raise ValueError(
                 f"'{name}' matches multiple tracked repos. Use --distro and/or --host to disambiguate:\n{options}"
             )
 
-        return cast(dict[str, object], matches[0])
+        return cast(dict[str, object], exact_matches[0]), is_partial
 
     def add_repo(
         self, url: str, distro: str, package_override: str | None = None
