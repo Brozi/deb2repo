@@ -92,7 +92,7 @@ def rebuild_distro(distro: str) -> None:
         _rebuild_distro(distro)
 
 
-def run_polling_cycle(rebuild: bool = False):
+def run_polling_cycle(rebuild: bool = False, repo_id: int | None = None):
 
     if not _POLL_LOCK.acquire(blocking=False):
         print("Warning: Polling cycle already in progress. Skipping duplicate trigger.")
@@ -104,16 +104,28 @@ def run_polling_cycle(rebuild: bool = False):
         db = SessionLocal()
 
         try:
+            target_repo = None
 
-            active_distros = db.query(TargetRepo.distro).distinct().all()
+            if repo_id is not None:
+                target_repo = db.query(TargetRepo).filter_by(id=repo_id).first()
+                if not target_repo:
+                    print(f"Error: No repository found with ID {repo_id}.")
+                    return
+                active_distros = [(target_repo.distro,)]
+            else:
+                active_distros = db.query(TargetRepo.distro).distinct().all()
+
             if not active_distros:
                 print("No active distributions found. Skipping rebuild.")
                 return
 
             for (distro_name,) in active_distros:
-                repos_for_distro = (
-                    db.query(TargetRepo).filter_by(distro=distro_name).all()
-                )
+                if repo_id is not None:
+                    repos_for_distro = [target_repo]
+                else:
+                    repos_for_distro = (
+                        db.query(TargetRepo).filter_by(distro=distro_name).all()
+                    )
 
                 if rebuild:
                     needs_rebuild = True
