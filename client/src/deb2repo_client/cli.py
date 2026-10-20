@@ -80,11 +80,11 @@ def cmd_add(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
-def cmd_delete(args: argparse.Namespace) -> None:
+def cmd_remove(args: argparse.Namespace) -> None:
     client = get_client()
 
     try:
-        result: dict[str, Any] = client.delete_repo(args.id)
+        result: dict[str, Any] = client.remove_repo(args.id)
         result_data = cast(dict[str, Any], result.get("data", {}))
 
         owner = result_data.get("owner")
@@ -219,8 +219,12 @@ def main():
     )
 
     remove_parser = subparsers.add_parser(
-        "remove",
+        "remove", help="Remove the repo from tracking and delete associated files"
     )
+
+    remove_parser.add_argument("id", help="Repository ID to remove")
+
+    remove_parser.set_defaults(func=cmd_remove)
 
     args = parser.parse_args()
 
@@ -239,6 +243,8 @@ def main():
         cmd_list(args)
     elif args.command == "import":
         cmd_import(args)
+    elif args.command == "remove":
+        cmd_remove(args)
 
 
 if __name__ == "__main__":
