@@ -186,7 +186,7 @@ def run_polling_cycle(rebuild: bool = False):
                 if needs_rebuild:
                     _rebuild_distro(distro_name)
                 else:
-                    print("No changes detected. Skipping rebuild for {distro_name}.")
+                    print(f"No changes detected. Skipping rebuild for {distro_name}.")
         finally:
             db.close()
 
