@@ -286,8 +286,8 @@ def _resolve_artifact_path(
     return artifact_path
 
 
-@app.delete("/api/repos/delete/{repo_id}/")
-def remove_repo(
+@app.delete("/api/repos/delete/{repo_id}")
+def delete_repo(
     repo_id: int, background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
 ):
     repo = db.query(TargetRepo).filter_by(id=repo_id).first()
@@ -411,7 +411,7 @@ def force_redownload_all(
     }
 
 
-@app.post("/api/repos/redownload/{repo_id}/", status_code=202)
+@app.post("/api/repos/redownload/{repo_id}", status_code=202)
 def force_repo_redownload(
     repo_id: int, background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
 ):
