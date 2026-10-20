@@ -44,7 +44,7 @@ def compare_deb_versions(file_a: str, file_b: str) -> int:
         return 0
     try:
         _ = subprocess.run(
-            ["dpkg", "--compare_versions", ver_a, "gt", ver_b], check=True
+            ["dpkg", "--compare-versions", ver_a, "gt", ver_b], check=True
         )
         return 1
     except subprocess.CalledProcessError:
