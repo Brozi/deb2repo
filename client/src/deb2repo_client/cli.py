@@ -106,8 +106,8 @@ def cmd_list(args: argparse.Namespace) -> None:
         if not repos:
             print("No packages are currently being tracked")
             return
-        print(f"{'PACKAGE':<25} {'LAST TAG':<10} {'DISTRO':<15} {'SOURCE':<40}")
-        print("-" * 80)
+        print(f"{'PACKAGE':<25} {'LAST TAG':<15} {'DISTRO':<15} {'SOURCE':<40}")
+        print("-" * 95)
         for tracked_repo in repos:
             distro = tracked_repo.get("distro") or "N/A"
             packages = tracked_repo.get("packages") or ["Pending first sync"]
