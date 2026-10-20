@@ -9,7 +9,7 @@ import requests
 from urllib.parse import quote, unquote
 
 from deb2repo_server.config import settings
-from deb2repo_server.parser import extract_package_name
+from deb2repo_server.utils import extract_package_name, get_deb_version
 from deb2repo_server.pruner import prune_obsolete_pkgs
 
 ARCH_MATRIX = {
@@ -169,7 +169,6 @@ def get_latest_deb(
         return
 
     target_dir.mkdir(parents=True, exist_ok=True)
-    clean_version = tag.lstrip("v")
     downloaded_paths: list[Path] = []
 
     selected_paths: dict[Path, str] = {}
@@ -201,7 +200,9 @@ def get_latest_deb(
                 tmp_filepath.unlink(missing_ok=True)
                 continue
 
-            final_filename = f"{true_package_name}_{clean_version}_{debian_arch}.deb"
+            deb_version = get_deb_version(str(tmp_filepath))
+
+            final_filename = f"{true_package_name}_{deb_version}_{debian_arch}.deb"
             final_filepath = target_dir / final_filename
 
             selected_asset = selected_paths.get(final_filepath)
