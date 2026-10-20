@@ -80,6 +80,25 @@ def cmd_add(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_delete(args: argparse.Namespace) -> None:
+    client = get_client()
+
+    try:
+        result: dict[str, Any] = client.delete_repo(args.id)
+        result_data = cast(dict[str, Any], result.get("data", {}))
+
+        owner = result_data.get("owner")
+        repo = result_data.get("repo_name")
+        removed_count = result_data.get("removed_files_count", 0)
+
+        print(
+            f"Success: Removed {owner}/{repo} from tracking. {removed_count} associated files were deleted."
+        )
+    except (ValueError, APIError) as error:
+        print(f"Error: {error}", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_list(args: argparse.Namespace) -> None:
     client = get_client()
     try:
@@ -151,10 +170,6 @@ def cmd_import(args: argparse.Namespace) -> None:
     print(
         f"\nImport complete. Successfully queued {len(added)}/{len(lines)} repositories in one poll."
     )
-
-
-def cmd_delete(args: argparse.Namespace) -> None:
-    pass
 
 
 def main():

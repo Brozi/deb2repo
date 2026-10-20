@@ -109,7 +109,7 @@ class RepoClient:
         except requests.exceptions.RequestException as error:
             raise APIError(f"Network error: {error!s}") from error
 
-    def delete_repo(self, repo_id) -> str | dict[str, str]:
+    def delete_repo(self, repo_id) -> dict[str, object]:
         try:
             response = requests.delete(
                 f"{self.api_url}/api/repos/delete/{repo_id}",
@@ -117,7 +117,7 @@ class RepoClient:
                 timeout=10,
             )
             response.raise_for_status()
-            return cast(str, response.json())
+            return cast(dict[str, object], response.json())
         except requests.exceptions.HTTPError as error:
             raise self._api_error(error) from error
         except requests.exceptions.RequestException as error:
