@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 from urllib.parse import urlparse
 
 import requests
@@ -18,71 +18,50 @@ class RepoClient:
             "Content-Type": "application/json",
         }
 
+    def _request(
+        self, method: str, path: str, json: dict[str, Any] | None = None
+    ) -> Any:
+        """Sends an HTTP request to the API and returns the parsed JSON response.
+        Handles all error wrapping so individual methods stay clean."""
+        url = f"{self.api_url}{path}"
+        try:
+            response = requests.request(
+                method, url, headers=self.headers, json=json, timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as error:
+            raise self._api_error(error) from error
+        except requests.exceptions.RequestException as error:
+            raise APIError(f"Network error: {error!s}") from error
+
     def add_repo(
         self, url: str, distro: str, package_override: str | None = None
     ) -> dict[str, object]:
 
         payload = self._build_repo_payload(url, distro, package_override)
 
-        try:
-            response = requests.post(
-                f"{self.api_url}/api/repos/add",
-                json=payload,
-                headers=self.headers,
-                timeout=10,
-            )
-            response.raise_for_status()
-            result = cast(dict[str, object], response.json())
-            return result
-
-        except requests.exceptions.HTTPError as error:
-            raise self._api_error(error) from error
-        except requests.exceptions.RequestException as error:
-            raise APIError(f"Network error: {error!s}") from error
+        return cast(
+            dict[str, object], self._request("POST", "/api/repos/add", json=payload)
+        )
 
     def remove_repo(self, repo_id) -> dict[str, object]:
-        try:
-            response = requests.delete(
-                f"{self.api_url}/api/repos/remove/{repo_id}",
-                headers=self.headers,
-                timeout=10,
-            )
-            response.raise_for_status()
-            return cast(dict[str, object], response.json())
-        except requests.exceptions.HTTPError as error:
-            raise self._api_error(error) from error
-        except requests.exceptions.RequestException as error:
-            raise APIError(f"Network error: {error!s}") from error
+        return cast(
+            dict[str, object], self._request("DELETE", f"/api/repos/remove/{repo_id}")
+        )
 
     def import_repos(self, urls: list[str], distro: str) -> dict[str, object]:
         """Mass import repos from a file"""
         payload = {"repos": [self._build_repo_payload(url, distro) for url in urls]}
-        try:
-            response = requests.post(
-                f"{self.api_url}/api/repos/import",
-                json=payload,
-                headers=self.headers,
-                timeout=10,
-            )
-            response.raise_for_status()
-            return cast(dict[str, object], response.json())
-        except requests.exceptions.HTTPError as error:
-            raise self._api_error(error) from error
-        except requests.exceptions.RequestException as error:
-            raise APIError(f"Network error: {error!s}") from error
+        return cast(
+            dict[str, object], self._request("POST", "/api/repos/import", json=payload)
+        )
 
     def sync_all(self) -> dict[str, object]:
-        try:
-            response = requests.post(
-                f"{self.api_url}/api/repos/sync", headers=self.headers, timeout=10
-            )
-            response.raise_for_status()
+        return cast(dict[str, object], self._request("POST", "/api/repos/sync_all"))
 
-            return cast(dict[str, object], response.json())
-        except requests.exceptions.HTTPError as error:
-            raise self._api_error(error) from error
-        except requests.exceptions.RequestException as error:
-            raise APIError(f"Network error: {error!s}") from error
+    def list_repos(self) -> list[dict]:
+        return cast(list[dict], self._request("GET", "/api/repos/list"))
 
     @staticmethod
     def _build_repo_payload(
@@ -123,15 +102,3 @@ class RepoClient:
             status_code = "Unknown"
 
         return APIError(f"HTTP {status_code}: {error_data}")
-
-    def list_repos(self) -> list[dict]:
-        try:
-            response = requests.get(
-                f"{self.api_url}/api/repos/list", headers=self.headers, timeout=10
-            )
-            response.raise_for_status()
-            return cast(list[dict], response.json())
-        except requests.exceptions.HTTPError as error:
-            raise self._api_error(error) from error
-        except requests.exceptions.RequestException as error:
-            raise APIError(f"Network error: {error!s}") from error
