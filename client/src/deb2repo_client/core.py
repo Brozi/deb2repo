@@ -41,6 +41,7 @@ class RepoClient:
             raise APIError(f"Network error: {error!s}") from error
 
     def import_repos(self, urls: list[str], distro: str) -> dict[str, object]:
+        """Mass import repos from a file"""
         payload = {"repos": [self._build_repo_payload(url, distro) for url in urls]}
         try:
             response = requests.post(
