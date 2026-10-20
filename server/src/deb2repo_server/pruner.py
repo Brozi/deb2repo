@@ -3,38 +3,7 @@ import os
 import subprocess
 from functools import cmp_to_key
 
-
-def get_deb_version(filepath: str) -> str:
-    try:
-        result = subprocess.run(
-            ["dpkg-deb", "-f", filepath, "Version"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        return "0"
-
-
-def get_deb_identity(filepath: str) -> tuple[str, str]:
-    """Return the package name and Debian architecture from package metadata"""
-    try:
-        result = subprocess.run(
-            ["dpkg-deb", "-f", filepath, "Package", "Architecture"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-
-    except subprocess.CalledProcessError as error:
-        raise ValueError(f"Unable to read .deb metadata: {error.stderr}") from error
-
-    values = result.stdout.splitlines()
-    if len(values) != 2 or not all(values):
-        raise ValueError(".deb metadata did not contain Package and Architecture")
-
-    return values[0], values[1]
+from deb2repo_server.utils import get_deb_identity, get_deb_version
 
 
 def compare_deb_versions(file_a: str, file_b: str) -> int:
