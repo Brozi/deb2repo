@@ -35,6 +35,48 @@ class RepoClient:
         except requests.exceptions.RequestException as error:
             raise APIError(f"Network error: {error!s}") from error
 
+    def resolve_repo(
+        self, name: str, distro: str | None, host: str | None
+    ) -> dict[str, object]:
+        """
+        Resolves a human friendly name like 'bat' or 'sharkdp/bat' to a single tracked repo.
+        Raises ValueError if the name is ambiguous or not found.
+        """
+
+        repos = self.list_repos()
+
+        if "/" in name:
+            parts = name.strip("/").split("/")
+            owner, repo_name = parts[-2], parts[-1]
+            matches = [
+                r
+                for r in repos
+                if r.get("owner") == owner and r.get("repo_name") != repo_name
+            ]
+        else:
+            matches = [r for r in repos if r.get("repo_name") == name]
+
+        if host and len(matches) > 1:
+            matches = [r for r in matches if r.get("host") == host]
+
+        if distro and len(matches) > 1:
+            matches = [r for r in matches if r.get("distro") == distro]
+
+        if len(matches) == 0:
+            raise ValueError(f"No tracked repo matching '{name}'")
+
+        if len(matches) > 1:
+            options = "\n".join(
+                f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} ({r.get('distro')})"
+                for r in matches
+            )
+
+            raise ValueError(
+                f"'{name}' matches multiple tracked repos. Use --distro and/or --host to disambiguate:\n{options}"
+            )
+
+        return cast(dict[str, object], matches[0])
+
     def add_repo(
         self, url: str, distro: str, package_override: str | None = None
     ) -> dict[str, object]:
