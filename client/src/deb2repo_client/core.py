@@ -51,7 +51,7 @@ class RepoClient:
             matches = [
                 r
                 for r in repos
-                if r.get("owner") == owner and r.get("repo_name") != repo_name
+                if r.get("owner") == owner and r.get("repo_name") == repo_name
             ]
         else:
             matches = [r for r in repos if r.get("repo_name") == name]
