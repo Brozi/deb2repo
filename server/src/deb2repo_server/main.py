@@ -366,11 +366,11 @@ def delete_repo(
 
     return {
         "message": f"Successfully purged repository '{repo.repo_name}'.",
-        "deleted_files_count": removed_files,
+        "data": _serialize_repo(repo),
     }
 
 
-@app.post("/api/repos/sync/", status_code=202)
+@app.post("/api/repos/sync", status_code=202)
 def force_polling_cycle(background_tasks: BackgroundTasks, token: AuthDep):
     """
     Bypasses the 15-minute APScheduler interval and immediately
@@ -380,7 +380,7 @@ def force_polling_cycle(background_tasks: BackgroundTasks, token: AuthDep):
     return {"message": "Background sync triggered. Check Docker logs for progress."}
 
 
-@app.post("/api/repos/rebuild/", status_code=202)
+@app.post("/api/repos/rebuild", status_code=202)
 def force_package_rebuild(background_tasks: BackgroundTasks, token: AuthDep):
     """
     Force rebuild of the package indexes without their removal.
@@ -389,7 +389,7 @@ def force_package_rebuild(background_tasks: BackgroundTasks, token: AuthDep):
     return {"message": "Background sync triggered. Check Docker logs for progress."}
 
 
-@app.post("/api/repos/redownload/all/", status_code=202)
+@app.post("/api/repos/redownload/all", status_code=202)
 def force_redownload_all(
     background_tasks: BackgroundTasks, db: DbSession, token: AuthDep
 ):
