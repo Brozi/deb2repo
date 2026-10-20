@@ -71,12 +71,13 @@ class RepoClient:
         except requests.exceptions.RequestException as error:
             raise APIError(f"Network error: {error!s}") from error
 
-    def sync_all_repos(self) -> dict[str, object]:
+    def sync_all(self) -> dict[str, object]:
         try:
             response = requests.post(
                 f"{self.api_url}/api/repos/sync", headers=self.headers, timeout=10
             )
             response.raise_for_status()
+
             return cast(dict[str, object], response.json())
         except requests.exceptions.HTTPError as error:
             raise self._api_error(error) from error
