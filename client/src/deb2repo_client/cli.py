@@ -127,6 +127,24 @@ def cmd_list(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_sync(args: argparse.Namespace) -> None:
+    client = get_client()
+    try:
+
+        if args.name:
+            repo = client.resolve_repo(args.name, getattr(args, "distro", None))
+            repo_id = repo.get("id")
+            result = client.sync_repo(int(repo_id))
+            print(result.get("message", f"Sync triggered for {args.name}"))
+        else:
+            result = client.sync_all()
+            print(result.get("message", "Sync triggered for all repos"))
+
+    except (ValueError, APIError) as error:
+        print(f"Error: {error}", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_import(args: argparse.Namespace) -> None:
     client: RepoClient = get_client()
     filepath = Path(args.file)
@@ -226,6 +244,24 @@ def main():
 
     remove_parser.set_defaults(func=cmd_remove)
 
+    sync_parser = subparsers.add_parser(
+        "sync", help="Trigger a polling cycle for a given repo, or all repos by default"
+    )
+
+    sync_parser.add_argument(
+        "name",
+        nargs="?",
+        help="Repository name to sync (e.g., 'bat', or 'sharkdp/bat'). Omit to sync all.",
+    )
+
+    sync_parser.add_argument(
+        "-d",
+        "--distro",
+        help="Disambiguate when the same repo is tracked for multiple distros.",
+    )
+
+    sync_parser.set_defaults(func=cmd_sync)
+
     args = parser.parse_args()
 
     # if args.tui:
@@ -245,6 +281,8 @@ def main():
         cmd_import(args)
     elif args.command == "remove":
         cmd_remove(args)
+    elif args.command == "sync":
+        cmd_sync(args)
 
 
 if __name__ == "__main__":
