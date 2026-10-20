@@ -6,6 +6,7 @@ from typing import Any
 
 import feedparser
 import requests
+from urllib.parse import quote, unquote
 
 from deb2repo_server.config import settings
 from deb2repo_server.parser import extract_package_name
@@ -127,7 +128,8 @@ def get_latest_tag(host: str, owner: str, name: str) -> str | None:
     unstable_tag_pattern = get_unstable_tag_pattern()
 
     for entry in feed.entries:
-        tag = entry["link"].split("/")[-1]
+        raw_tag = entry["link"].split("/")[-1]
+        tag = unquote(raw_tag).replace("+", "-")
 
         if not unstable_tag_pattern or not unstable_tag_pattern.search(tag):
             print(f"Latest stable release tag: {tag}")
@@ -145,7 +147,11 @@ def get_latest_deb(
     if not tag:
         return
 
-    api_url = f"https://api.{host}/repos/{owner}/{repo_name}/releases/tags/{tag}"
+    upstream_git_tag = quote(tag.replace("-", "+"))
+
+    api_url = (
+        f"https://api.{host}/repos/{owner}/{repo_name}/releases/tags/{upstream_git_tag}"
+    )
 
     headers: dict[str, str] = {}
 
