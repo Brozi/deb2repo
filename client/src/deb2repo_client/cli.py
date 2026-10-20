@@ -120,7 +120,7 @@ def cmd_list(args: argparse.Namespace) -> None:
             )
 
             for package_name in packages:
-                print(f"{package_name:<25} {last_tag:<10} {distro:<15} {source:<40}")
+                print(f"{package_name:<25} {last_tag:<15} {distro:<15} {source:<40}")
 
     except APIError as e:
         print(f"Error: {e}", file=sys.stderr)
