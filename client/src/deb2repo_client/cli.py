@@ -8,6 +8,7 @@ from typing import Any, cast
 from deb2repo_client.core import APIError, RepoClient
 
 CONFIG_FILE = Path.home() / ".config" / "deb2repo" / "config.json"
+DEFAULT_CONFIG = {"url": "", "token": ""}
 
 
 def load_config() -> dict[str, str]:
@@ -21,7 +22,7 @@ def load_config() -> dict[str, str]:
                 with open(CONFIG_FILE, "r") as f:
                     data = json.load(f)
 
-                    api_url = api_url or data.get("url")
+                    api_url = api_url or data.get("url") or "http://127.0.0.1:8889"
                     token = token or data.get("token")
             except json.JSONDecodeError:
                 print(f"Error: Malformed JSON configuration file at {CONFIG_FILE}")
@@ -29,6 +30,18 @@ def load_config() -> dict[str, str]:
             except Exception as e:
                 print(f"Unexpected error reading configuration: {e}", file=sys.stderr)
                 sys.exit(1)
+        else:
+            try:
+                CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+                with open(CONFIG_FILE, "w") as f:
+                    json.dump(DEFAULT_CONFIG, f, indent=4)
+                print(
+                    f"Created empty configuration file template at {CONFIG_FILE}. Please fill in the required fields.",
+                    file=sys.stderr,
+                )
+
+            except Exception as e:
+                print(f"Error creating configuration file: {e}", file=sys.stderr)
 
     if not api_url or not token:
         print("Fatal: Missing credentials.", file=sys.stderr)
@@ -37,7 +50,7 @@ def load_config() -> dict[str, str]:
             file=sys.stderr,
         )
         print(
-            '{\n "url": "http://your-server-ip:8000", \n "token": "your-secure-token"\n}',
+            '{\n "url": "http://your-server-ip:8889", \n "token": "your-secure-token"\n}',
             file=sys.stderr,
         )
         sys.exit(1)
