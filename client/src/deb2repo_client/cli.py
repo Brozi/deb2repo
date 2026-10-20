@@ -84,10 +84,10 @@ def cmd_remove(args: argparse.Namespace) -> None:
     client = get_client()
 
     try:
-        repo = client.resolve_repo(
+        repo, is_partial = client.resolve_repo(
             args.name, getattr(args, "distro", None), getattr(args, "host", None)
         )
-        repo_id = cast(int, repo[0].get("id"))
+        repo_id = cast(int, repo.get("id"))
         result: dict[str, Any] = client.remove_repo(int(repo_id))
         result_data = cast(dict[str, Any], result.get("data", {}))
 
@@ -136,10 +136,10 @@ def cmd_sync(args: argparse.Namespace) -> None:
     try:
 
         if args.name:
-            repo = client.resolve_repo(
+            repo, is_partial = client.resolve_repo(
                 args.name, getattr(args, "distro", None), getattr(args, "host", None)
             )
-            repo_id = cast(int, repo[0].get("id"))
+            repo_id = cast(int, repo.get("id"))
             client.sync_repo(int(repo_id))
             print(f"Sync triggered for {args.name}")
         else:
