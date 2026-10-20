@@ -58,12 +58,3 @@ class RepoArtifact(Base):
 
 
 Base.metadata.create_all(bind=engine)
-
-with engine.connect() as conn:
-    cursor = conn.execute(text("PRAGMA table_info(target_repos)"))
-    columns = [row[1] for row in cursor.fetchall()]
-    if columns and "last_release_hash" not in columns:
-        conn.execute(
-            text("ALTER TABLE target_repos ADD COLUMN last_release_hash VARCHAR")
-        )
-        conn.commit()
