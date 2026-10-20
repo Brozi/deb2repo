@@ -100,7 +100,12 @@ class RepoClient:
         )
 
     def sync_all(self) -> dict[str, object]:
-        return cast(dict[str, object], self._request("POST", "/api/repos/sync_all"))
+        return cast(dict[str, object], self._request("POST", "/api/repos/sync"))
+
+    def sync_repo(self, repo_id) -> dict[str, object]:
+        return cast(
+            dict[str, object], self._request("POST", f"/api/repos/sync/{repo_id}")
+        )
 
     def list_repos(self) -> list[dict]:
         return cast(list[dict], self._request("GET", "/api/repos/list"))

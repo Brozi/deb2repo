@@ -84,7 +84,11 @@ def cmd_remove(args: argparse.Namespace) -> None:
     client = get_client()
 
     try:
-        result: dict[str, Any] = client.remove_repo(args.id)
+        repo = client.resolve_repo(
+            args.name, getattr(args, "distro", None), getattr(args, "host", None)
+        )
+        repo_id = cast(int, repo.get("id"))
+        result: dict[str, Any] = client.remove_repo(int(repo_id))
         result_data = cast(dict[str, Any], result.get("data", {}))
 
         owner = result_data.get("owner")
@@ -132,7 +136,9 @@ def cmd_sync(args: argparse.Namespace) -> None:
     try:
 
         if args.name:
-            repo = client.resolve_repo(args.name, getattr(args, "distro", None))
+            repo = client.resolve_repo(
+                args.name, getattr(args, "distro", None), getattr(args, "host", None)
+            )
             repo_id = repo.get("id")
             result = client.sync_repo(int(repo_id))
             print(result.get("message", f"Sync triggered for {args.name}"))
@@ -240,7 +246,21 @@ def main():
         "remove", help="Remove the repo from tracking and delete associated files"
     )
 
-    remove_parser.add_argument("id", help="Repository ID to remove")
+    remove_parser.add_argument(
+        "name", help="Repository name to sync (e.g., 'bat', or 'sharkdp/bat')."
+    )
+
+    remove_parser.add_argument(
+        "-d",
+        "--distro",
+        help="Disambiguate when the same repo is tracked for multiple distros.",
+    )
+
+    remove_parser.add_argument(
+        "-h",
+        "--host",
+        help="Disambiguate when the same repo is tracked from multiple hosts (e.g., github.com, gitlab.com).",
+    )
 
     remove_parser.set_defaults(func=cmd_remove)
 
@@ -258,6 +278,12 @@ def main():
         "-d",
         "--distro",
         help="Disambiguate when the same repo is tracked for multiple distros.",
+    )
+
+    sync_parser.add_argument(
+        "-h",
+        "--host",
+        help="Disambiguate when the same repo is tracked from multiple hosts (e.g., github.com, gitlab.com).",
     )
 
     sync_parser.set_defaults(func=cmd_sync)
