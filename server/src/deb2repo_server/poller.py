@@ -148,8 +148,7 @@ def get_latest_deb(
     if not tag:
         return
 
-    upstream_git_tag = quote(tag.replace("-", "+"))
-
+    upstream_git_tag = quote(tag.replace("-", "+"), safe="")
     api_url = (
         f"https://api.{host}/repos/{owner}/{repo_name}/releases/tags/{upstream_git_tag}"
     )
@@ -217,18 +216,16 @@ def get_latest_deb(
                 continue
 
             if final_filepath.exists():
-                if not filecmp.cmp(tmp_filepath, final_filepath, shallow=False):
+                if filecmp.cmp(tmp_filepath, final_filepath, shallow=False):
                     print(
-                        f"Skipping {original_filename}: {final_filepath.name} already "
-                        "exists with different contents."
+                        f"Reusing unchanged package already in the pool: {final_filepath.name}"
                     )
                     tmp_filepath.unlink(missing_ok=True)
-                    continue
-
-                print(
-                    f"Reusing unchanged package already in pool: {final_filepath.name}"
-                )
-                tmp_filepath.unlink(missing_ok=True)
+                else:
+                    print(
+                        f"Updating package in pool with newer build: {final_filepath.name}"
+                    )
+                    os.replace(tmp_filepath, final_filepath)
 
             else:
                 os.replace(tmp_filepath, final_filepath)
