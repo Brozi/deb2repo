@@ -1,4 +1,11 @@
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, create_engine
+from sqlalchemy import (
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    create_engine,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from deb2repo_server.config import settings
@@ -22,6 +29,8 @@ class TargetRepo(Base):
     owner: Mapped[str] = mapped_column(String, index=True)
     repo_name: Mapped[str] = mapped_column(String, index=True)
     last_tag: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Store release update timestamp/hash to detect repacked releases
+    last_release_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     # Optional filter. NULL means track every eligible package from this source.
     package_name: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
     distro: Mapped[str] = mapped_column(String, index=True)
@@ -49,3 +58,12 @@ class RepoArtifact(Base):
 
 
 Base.metadata.create_all(bind=engine)
+
+with engine.connect() as conn:
+    cursor = conn.execute(text("PRAGMA table_info(target_repos"))
+    columns = [row[1] for row in cursor.fetchall()]
+    if columns and "last_release_hash" not in columns:
+        conn.execute(
+            text("ALTER TABLE target_repos ADD COLUMN last_release_hash VARCHAR")
+        )
+        conn.commit()
