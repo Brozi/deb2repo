@@ -122,7 +122,7 @@ def run_polling_cycle(rebuild: bool = False):
                     needs_rebuild = False
 
                 for repo in repos_for_distro:
-                    latest_tag = poller.get_latest_tag(
+                    latest_tag, release_hash = poller.get_latest_tag(
                         repo.host, repo.owner, repo.repo_name
                     )
                     if latest_tag is None:
@@ -131,11 +131,14 @@ def run_polling_cycle(rebuild: bool = False):
                         )
                         continue
 
-                    if latest_tag == repo.last_tag:
+                    if (
+                        latest_tag == repo.last_tag
+                        and repo.last_release_hash == release_hash
+                    ):
                         continue
 
                     print(
-                        f"New release found for {repo.host}/{repo.owner}/{repo.repo_name}: {latest_tag}"
+                        f"New or updated release found for {repo.host}/{repo.owner}/{repo.repo_name}: {latest_tag}"
                     )
                     try:
 
@@ -167,6 +170,7 @@ def run_polling_cycle(rebuild: bool = False):
                         _remove_missing_artifact_records(db, repo.distro)
 
                         repo.last_tag = latest_tag
+                        repo.last_release_hash = release_hash
 
                         db.commit()
                     except SQLAlchemyError as error:
