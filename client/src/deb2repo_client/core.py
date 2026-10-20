@@ -40,6 +40,20 @@ class RepoClient:
         except requests.exceptions.RequestException as error:
             raise APIError(f"Network error: {error!s}") from error
 
+    def remove_repo(self, repo_id) -> dict[str, object]:
+        try:
+            response = requests.delete(
+                f"{self.api_url}/api/repos/remove/{repo_id}",
+                headers=self.headers,
+                timeout=10,
+            )
+            response.raise_for_status()
+            return cast(dict[str, object], response.json())
+        except requests.exceptions.HTTPError as error:
+            raise self._api_error(error) from error
+        except requests.exceptions.RequestException as error:
+            raise APIError(f"Network error: {error!s}") from error
+
     def import_repos(self, urls: list[str], distro: str) -> dict[str, object]:
         """Mass import repos from a file"""
         payload = {"repos": [self._build_repo_payload(url, distro) for url in urls]}
@@ -104,20 +118,6 @@ class RepoClient:
             )
             response.raise_for_status()
             return cast(list[dict], response.json())
-        except requests.exceptions.HTTPError as error:
-            raise self._api_error(error) from error
-        except requests.exceptions.RequestException as error:
-            raise APIError(f"Network error: {error!s}") from error
-
-    def remove_repo(self, repo_id) -> dict[str, object]:
-        try:
-            response = requests.delete(
-                f"{self.api_url}/api/repos/remove/{repo_id}",
-                headers=self.headers,
-                timeout=10,
-            )
-            response.raise_for_status()
-            return cast(dict[str, object], response.json())
         except requests.exceptions.HTTPError as error:
             raise self._api_error(error) from error
         except requests.exceptions.RequestException as error:
