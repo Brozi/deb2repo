@@ -3,14 +3,14 @@ import os
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote, unquote
 
 import feedparser
 import requests
-from urllib.parse import quote, unquote
 
 from deb2repo_server.config import settings
-from deb2repo_server.utils import extract_package_name, get_deb_version
 from deb2repo_server.pruner import prune_obsolete_pkgs
+from deb2repo_server.utils import extract_package_name, get_deb_version
 
 ARCH_MATRIX = {
     # 1. Universal / Scripts (Checked first to bypass hardware specifics)
@@ -117,25 +117,26 @@ def filter_assets(
     return valid_downloads
 
 
-def get_latest_tag(host: str, owner: str, name: str) -> str | None:
+def get_latest_tag(host: str, owner: str, name: str) -> tuple[str | None, str | None]:
     base_url = f"https://{host}/{owner}/{name}/releases.atom"
     feed = feedparser.parse(base_url)
 
     if not feed.entries:
         print(f"No releases found for {host}/{owner}/{name}")
-        return None
+        return None, None
 
     unstable_tag_pattern = get_unstable_tag_pattern()
 
     for entry in feed.entries:
         raw_tag = entry["link"].split("/")[-1]
         tag = unquote(raw_tag).replace("+", "-")
+        updated_at = getattr(entry, "updated", None)
 
         if not unstable_tag_pattern or not unstable_tag_pattern.search(tag):
-            print(f"Latest stable release tag: {tag}")
-            return tag
+            print(f"Latest stable release tag for {name}: {tag}")
+            return tag, updated_at
     print(f"No stable releases found for {host}/{owner}/{name}")
-    return None
+    return None, None
 
 
 def get_latest_deb(
@@ -143,7 +144,7 @@ def get_latest_deb(
 ) -> list[Path] | None:
     target_dir = Path(settings.repo_path) / "pool" / distro / "main"
 
-    tag = get_latest_tag(host, owner, repo_name)
+    tag, _ = get_latest_tag(host, owner, repo_name)
     if not tag:
         return
 
