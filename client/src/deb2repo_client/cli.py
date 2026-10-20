@@ -140,11 +140,11 @@ def cmd_sync(args: argparse.Namespace) -> None:
                 args.name, getattr(args, "distro", None), getattr(args, "host", None)
             )
             repo_id = cast(int, repo.get("id"))
-            result = client.sync_repo(int(repo_id))
-            print(result.get("message", f"Sync triggered for {args.name}"))
+            client.sync_repo(int(repo_id))
+            print(f"Sync triggered for {args.name}")
         else:
-            result = client.sync_all()
-            print(result.get("message", "Sync triggered for all repos"))
+            client.sync_all()
+            print("Sync triggered for all repos")
 
     except (ValueError, APIError) as error:
         print(f"Error: {error}", file=sys.stderr)
