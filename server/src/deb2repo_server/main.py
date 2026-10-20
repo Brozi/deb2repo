@@ -366,7 +366,10 @@ def delete_repo(
 
     return {
         "message": f"Successfully purged repository '{repo.repo_name}'.",
-        "data": _serialize_repo(repo),
+        "data": {
+            **_serialize_repo(repo),
+            "removed_files_count": removed_files,
+        },
     }
 
 
