@@ -7,6 +7,7 @@ from typing import Any, cast
 
 from deb2repo_client.core import APIError, RepoClient
 from deb2repo_client.exceptions import AmbiguousRepoError, RepoNotFoundError
+from deb2repo_client.utils import confirm_action
 
 CONFIG_FILE = Path.home() / ".config" / "deb2repo" / "config.json"
 DEFAULT_CONFIG = {"url": "", "token": ""}
@@ -111,14 +112,9 @@ def cmd_remove(args: argparse.Namespace) -> None:
                         file=sys.stderr,
                     )
                 else:
-                    choice = (
-                        input(
-                            f"Exact match for '{args.name}' not found. Did you mean '{full_name}'? [y/N]: "
-                        )
-                        .strip()
-                        .lower()
-                    )
-                    if choice not in ("", "y", "yes"):
+                    if not confirm_action(
+                        f"Exact match for '{args.name}' not found. Did you mean '{full_name}'? [y/N]: "
+                    ):
                         print("Operation aborted", file=sys.stderr)
                         sys.exit(1)
 
@@ -213,14 +209,9 @@ def cmd_sync(args: argparse.Namespace) -> None:
                             file=sys.stderr,
                         )
                     else:
-                        choice = (
-                            input(
-                                f"Exact match for '{args.name}' not found. Did you mean '{full_name}'? [y/N]: "
-                            )
-                            .strip()
-                            .lower()
-                        )
-                        if choice not in ("", "y", "yes"):
+                        if not confirm_action(
+                            f"Exact match for '{args.name}' not found. Did you mean '{full_name}'? [y/N]: "
+                        ):
                             print("Operation aborted", file=sys.stderr)
                             sys.exit(1)
 
