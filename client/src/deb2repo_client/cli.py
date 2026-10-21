@@ -261,6 +261,12 @@ def main():
         "--host",
         help="Disambiguate when the same repo is tracked from multiple hosts (e.g., github.com, gitlab.com).",
     )
+    remove_parser.add_argument(
+        "--no-confirm",
+        "-n",
+        actuion="store_true",
+        help="Disable interactive prompts, and auto-accept partial matches. Use with caution.",
+    )
 
     remove_parser.set_defaults(func=cmd_remove)
 
@@ -284,6 +290,13 @@ def main():
         "-H",
         "--host",
         help="Disambiguate when the same repo is tracked from multiple hosts (e.g., github.com, gitlab.com).",
+    )
+
+    sync_parser.add_argument(
+        "--no-confirm",
+        "-n",
+        actuion="store_true",
+        help="Disable interactive prompts, and auto-accept partial matches. Use with caution.",
     )
 
     sync_parser.set_defaults(func=cmd_sync)
