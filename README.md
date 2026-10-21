@@ -6,9 +6,9 @@
 
 `deb2repo` watches GitHub-hosted release assets, downloads matching Debian packages, builds signed APT metadata, and serves the resulting repository through a lightweight Nginx container. It is designed for maintainers who publish `.deb` packages but want a private, self-hosted, or organization-controlled package distribution channel.
 
-> **Project status:** deb2repo is under active development. Review the configuration, security, and operational notes below before exposing an instance to the public internet.
+> **Project status:** deb2repo is under active development. Expect breaking changes - stability is **NOT** guaranteed. Review the configuration, security, and operational notes below before exposing an instance to the public internet.
 
-> [!WARNING]    
+> [!WARNING]  
 > `deb2repo` **is** designed to work with other Git repository hostings, such as Gitlab, Codeberg and similar.
 > The compatibility however, is not guaranteed, and is **not** tested. Please report any bugs you might find when using `deb2repo` with
 > providers other than Github.
@@ -111,7 +111,7 @@ The recommended deployment uses Docker and Docker Compose. The backend image req
 
 ### Development requirements
 
-- Python 3.11 or newer 
+- Python 3.11 or newer
 - A GPG key available to the backend container.
 - Docker and Docker Compose for the full integration environment.
 - A GitHub token when polling private repositories or when unauthenticated GitHub API limits are insufficient.
@@ -205,17 +205,17 @@ curl -X POST http://localhost:8889/api/sync/
 
 Configuration is loaded from environment variables and can be provided through `server/.env` or Docker Compose's `env_file` configuration.
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `GITHUB_TOKEN` | empty | Optional GitHub access token. Recommended for private repositories and higher API limits. |
-| `GPG_KEY_ID` | required | GPG key ID used to sign APT `Release` metadata. |
-| `REPO_ORIGIN` | `My Custom Repo` | Repository origin and label written into release metadata. |
-| `BASE_REPO_PATH` | `/app/repo` | Root directory of the generated APT repository inside the backend container. |
-| `DB_URL` | `sqlite:////app/state/repo_state.db` | SQLAlchemy database URL used for tracking state. |
-| `KEEP_COUNT` | `2` | Number of versions retained per package and architecture. Set to `0` to disable pruning. |
-| `HOSTED_ARCHS` | `amd64, arm64, i386, all` | Comma-separated architectures accepted from release assets. |
-| `KNOWN_CODENAMES` | Debian and Ubuntu codenames | Comma-separated distribution codenames accepted by the poller. |
-| `UNSTABLE_KEYWORDS` | `rc,alpha,beta,dev,pre,nightly,test,snapshot` | Comma-separated release keywords treated as unstable and excluded from stable selection. |
+| Variable            | Default                                       | Description                                                                               |
+| ------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `GITHUB_TOKEN`      | empty                                         | Optional GitHub access token. Recommended for private repositories and higher API limits. |
+| `GPG_KEY_ID`        | required                                      | GPG key ID used to sign APT `Release` metadata.                                           |
+| `REPO_ORIGIN`       | `My Custom Repo`                              | Repository origin and label written into release metadata.                                |
+| `BASE_REPO_PATH`    | `/app/repo`                                   | Root directory of the generated APT repository inside the backend container.              |
+| `DB_URL`            | `sqlite:////app/state/repo_state.db`          | SQLAlchemy database URL used for tracking state.                                          |
+| `KEEP_COUNT`        | `2`                                           | Number of versions retained per package and architecture. Set to `0` to disable pruning.  |
+| `HOSTED_ARCHS`      | `amd64, arm64, i386, all`                     | Comma-separated architectures accepted from release assets.                               |
+| `KNOWN_CODENAMES`   | Debian and Ubuntu codenames                   | Comma-separated distribution codenames accepted by the poller.                            |
+| `UNSTABLE_KEYWORDS` | `rc,alpha,beta,dev,pre,nightly,test,snapshot` | Comma-separated release keywords treated as unstable and excluded from stable selection.  |
 
 Example configuration:
 
@@ -343,13 +343,13 @@ Do not publish the private key. Only the ASCII-armored public key belongs in the
 
 The backend exposes the following endpoints:
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/repos/list` | Return all tracked upstream repositories. |
-| `POST` | `/api/repos/add` | Register a repository for polling. |
-| `DELETE` | `/api/repos/delete/{repo_id}/` | Stop tracking a repository. |
-| `POST` | `/api/sync/` | Queue a normal background polling cycle. |
-| `POST` | `/api/rebuild/` | Queue a polling cycle that rebuilds indexes regardless of release changes. |
+| Method   | Path                           | Purpose                                                                    |
+| -------- | ------------------------------ | -------------------------------------------------------------------------- |
+| `GET`    | `/api/repos/list`              | Return all tracked upstream repositories.                                  |
+| `POST`   | `/api/repos/add`               | Register a repository for polling.                                         |
+| `DELETE` | `/api/repos/delete/{repo_id}/` | Stop tracking a repository.                                                |
+| `POST`   | `/api/sync/`                   | Queue a normal background polling cycle.                                   |
+| `POST`   | `/api/rebuild/`                | Queue a polling cycle that rebuilds indexes regardless of release changes. |
 
 FastAPI's interactive API documentation is also available at:
 
@@ -399,18 +399,18 @@ The backend uses temporary files and atomic replacements while writing generated
 
 The poller is designed for release assets published by GitHub repositories. It understands common architecture aliases, including:
 
-| Input aliases | APT architecture |
-| --- | --- |
-| `noarch`, `universal`, `all` | `all` |
-| `x86_64`, `amd64`, `x64`, `64bit` | `amd64` |
-| `x86_32`, `i386`, `i486`, `i586`, `i686`, `32bit`, `x86` | `i386` |
-| `aarch64`, `arm64`, `armv8` | `arm64` |
-| `armhf`, `armv7l`, `armv7` | `armhf` |
-| `armel`, `armv6l`, `armv6` | `armel` |
-| `riscv64`, `rv64` | `riscv64` |
-| `ppc64le`, `ppc64el` | `ppc64el` |
-| `s390x` | `s390x` |
-| `mips64le`, `mips64el` | `mips64el` |
+| Input aliases                                            | APT architecture |
+| -------------------------------------------------------- | ---------------- |
+| `noarch`, `universal`, `all`                             | `all`            |
+| `x86_64`, `amd64`, `x64`, `64bit`                        | `amd64`          |
+| `x86_32`, `i386`, `i486`, `i586`, `i686`, `32bit`, `x86` | `i386`           |
+| `aarch64`, `arm64`, `armv8`                              | `arm64`          |
+| `armhf`, `armv7l`, `armv7`                               | `armhf`          |
+| `armel`, `armv6l`, `armv6`                               | `armel`          |
+| `riscv64`, `rv64`                                        | `riscv64`        |
+| `ppc64le`, `ppc64el`                                     | `ppc64el`        |
+| `s390x`                                                  | `s390x`          |
+| `mips64le`, `mips64el`                                   | `mips64el`       |
 
 Release assets containing configured unstable keywords such as `rc`, `alpha`, `beta`, `nightly`, or `snapshot` are excluded by default. Adjust `UNSTABLE_KEYWORDS` if your release naming convention differs.
 
