@@ -264,7 +264,7 @@ def main():
     remove_parser.add_argument(
         "--no-confirm",
         "-n",
-        actuion="store_true",
+        action="store_true",
         help="Disable interactive prompts, and auto-accept partial matches. Use with caution.",
     )
 
@@ -295,7 +295,7 @@ def main():
     sync_parser.add_argument(
         "--no-confirm",
         "-n",
-        actuion="store_true",
+        action="store_true",
         help="Disable interactive prompts, and auto-accept partial matches. Use with caution.",
     )
 
