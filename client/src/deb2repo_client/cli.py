@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from deb2repo_client.core import APIError, RepoClient
+from deb2repo_client.exceptions import AmbiguousRepoError, RepoNotFoundError
 
 CONFIG_FILE = Path.home() / ".config" / "deb2repo" / "config.json"
 DEFAULT_CONFIG = {"url": "", "token": ""}
@@ -82,22 +83,60 @@ def cmd_add(args: argparse.Namespace) -> None:
 
 def cmd_remove(args: argparse.Namespace) -> None:
     client = get_client()
-
     try:
-        repo, is_partial = client.resolve_repo(
-            args.name, getattr(args, "distro", None), getattr(args, "host", None)
-        )
-        repo_id = cast(int, repo.get("id"))
-        result: dict[str, Any] = client.remove_repo(int(repo_id))
-        result_data = cast(dict[str, Any], result.get("data", {}))
 
-        owner = result_data.get("owner")
-        repo = result_data.get("repo_name")
-        removed_count = result_data.get("removed_files_count", 0)
+        try:
+            repo, is_partial = client.resolve_repo(
+                args.name,
+                getattr(args, "distro", None),
+                getattr(args, "host", None),
+            )
 
-        print(
-            f"Success: Removed {owner}/{repo} from tracking. {removed_count} associated files were deleted."
-        )
+            if is_partial:
+                full_name = (
+                    f"{repo.get('host')}/{repo.get('owner')}/{repo.get('repo_name')}"
+                )
+
+                if args.no_confirm:
+                    print(
+                        f"Notice: Using partial match '{full_name}' (--no-prompt passed)."
+                    )
+                else:
+                    choice = (
+                        input(
+                            f"Exact match for '{args.name}' not found. Did you mean '{full_name}'? [y/N]: "
+                        )
+                        .strip()
+                        .lower()
+                    )
+                    if choice not in ("", "y", "yes"):
+                        print("Operation aborted")
+                        sys.exit(1)
+
+            repo_id = cast(int, repo.get("id"))
+            result: dict[str, Any] = client.remove_repo(int(repo_id))
+            result_data = cast(dict[str, Any], result.get("data", {}))
+
+            owner = result_data.get("owner")
+            repo = result_data.get("repo_name")
+            removed_count = result_data.get("removed_files_count", 0)
+            print(
+                f"Success: Removed {owner}/{repo} from tracking. {removed_count} associated files were deleted."
+            )
+
+        except RepoNotFoundError as error:
+            print(f"Error: {error}")
+            sys.exit(1)
+        except AmbiguousRepoError as error:
+            print(f"Error: {error}")
+            print("Use --distro and/or --host to disambiguate. Available options:")
+
+            for r in error.matches:
+                print(
+                    f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')}"
+                )
+            sys.exit(1)
+
     except (ValueError, APIError) as error:
         print(f"Error: {error}", file=sys.stderr)
         sys.exit(1)
@@ -136,12 +175,49 @@ def cmd_sync(args: argparse.Namespace) -> None:
     try:
 
         if args.name:
-            repo, is_partial = client.resolve_repo(
-                args.name, getattr(args, "distro", None), getattr(args, "host", None)
-            )
-            repo_id = cast(int, repo.get("id"))
-            client.sync_repo(int(repo_id))
-            print(f"Sync triggered for {args.name}")
+            try:
+                repo, is_partial = client.resolve_repo(
+                    args.name,
+                    getattr(args, "distro", None),
+                    getattr(args, "host", None),
+                )
+
+                if is_partial:
+                    full_name = f"{repo.get('host')}/{repo.get('owner')}/{repo.get('repo_name')}"
+
+                    if args.no_confirm:
+                        print(
+                            f"Notice: Using partial match '{full_name}' (--no-prompt passed)."
+                        )
+                    else:
+                        choice = (
+                            input(
+                                f"Exact match for '{args.name}' not found. Did you mean '{full_name}'? [y/N]: "
+                            )
+                            .strip()
+                            .lower()
+                        )
+                        if choice not in ("", "y", "yes"):
+                            print("Operation aborted")
+                            sys.exit(1)
+
+                repo_id = cast(int, repo.get("id"))
+                client.sync_repo(int(repo_id))
+                print(f"Sync triggered for {args.name}")
+
+            except RepoNotFoundError as error:
+                print(f"Error: {error}")
+                sys.exit(1)
+            except AmbiguousRepoError as error:
+                print(f"Error: {error}")
+                print("Use --distro and/or --host to disambiguate. Available options:")
+
+                for r in error.matches:
+                    print(
+                        f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')}"
+                    )
+                sys.exit(1)
+
         else:
             client.sync_all()
             print("Sync triggered for all repos")

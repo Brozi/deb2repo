@@ -3,6 +3,8 @@ from urllib.parse import urlparse
 
 import requests
 
+from deb2repo_client.exceptions import AmbiguousRepoError, RepoNotFoundError
+
 
 class APIError(Exception):
     """Custom exception for all API-related errors."""
@@ -80,17 +82,11 @@ class RepoClient:
             matches = [r for r in matches if r.get("distro") == distro]
 
         if len(matches) == 0:
-            raise ValueError(f"No tracked repo matching '{name}'")
+            raise RepoNotFoundError(name)
 
-        if len(exact_matches) > 1:
-            options = "\n".join(
-                f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} ({r.get('distro')})"
-                for r in exact_matches
-            )
+        if len(matches) > 1:
 
-            raise ValueError(
-                f"'{name}' matches multiple tracked repos. Use --distro and/or --host to disambiguate:\n{options}"
-            )
+            raise AmbiguousRepoError(name, matches)
 
         return cast(dict[str, object], matches[0]), is_partial
 
