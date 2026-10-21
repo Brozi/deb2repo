@@ -15,13 +15,13 @@ def confirm_action(message: str) -> bool:
     return choice in ("", "y", "yes")
 
 
-def print_success(human_message: str, script_data: str) -> None:
+def print_success(args, human_message: str, script_data: str) -> None:
     """
     Intelligently routes output based on whether user is in a terminal
     or piping the output to a script.
     """
-    if sys.stdout.isatty():
-        print(human_message)
-    else:
+    if getattr(args, "scripting", False) or not sys.stdout.isatty():
         print(human_message, file=sys.stderr)
         print(script_data)
+    else:
+        print(human_message)

@@ -7,7 +7,7 @@ from typing import Any, cast
 
 from deb2repo_client.core import APIError, RepoClient
 from deb2repo_client.exceptions import AmbiguousRepoError, RepoNotFoundError
-from deb2repo_client.utils import confirm_action
+from deb2repo_client.utils import confirm_action, print_success
 
 CONFIG_FILE = Path.home() / ".config" / "deb2repo" / "config.json"
 DEFAULT_CONFIG = {"url": "", "token": ""}
@@ -75,16 +75,18 @@ def cmd_add(args: argparse.Namespace) -> None:
     try:
         result: dict[str, Any] = client.add_repo(args.url, args.distro, args.package)
         result_data = cast(dict[str, Any], result.get("data", {}))
-        owner = result_data.get("owner")
 
+        owner = result_data.get("owner")
         repo = result_data.get("repo_name")
 
-        print(
-            f"Success: Added {owner}/{repo} to the build queue for '{args.distro}'",
-            file=sys.stderr,
+        stderr_msg = (
+            f"Success: Added {owner}/{repo} to the build queue for '{args.distro}'"
         )
+        stdout_msg = str(args.url)
+
         # Print the added url to stdout for scripting
-        print(args.url)
+        print_success(args, stderr_msg, stdout_msg)
+
     except (ValueError, APIError) as error:
         print(f"Error: {error}", file=sys.stderr)
         sys.exit(1)
@@ -126,11 +128,12 @@ def cmd_remove(args: argparse.Namespace) -> None:
             owner = result_data.get("owner")
             repo = result_data.get("repo_name")
             removed_count = result_data.get("removed_files_count", 0)
-            print(
-                f"Success: Removed {host}/{owner}/{repo} from tracking. {removed_count} associated files were deleted.",
-                file=sys.stderr,
-            )
-            print(f"https://{host}/{owner}/{repo}", file=sys.stdout)
+
+            stderr_msg = f"Success: Removed {host}/{owner}/{repo} from tracking. {removed_count} \
+                    associated files were deleted."
+            stdout_msg = f"https://{host}/{owner}/{repo}"
+
+            print_success(args, stderr_msg, stdout_msg)
 
         except RepoNotFoundError as error:
             print(f"Error: {error}", file=sys.stderr)
@@ -144,7 +147,8 @@ def cmd_remove(args: argparse.Namespace) -> None:
 
             for r in error.matches:
                 print(
-                    f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')})",
+                    f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} \
+                            (distro: {r.get('distro')})",
                     file=sys.stderr,
                 )
             sys.exit(1)
@@ -217,8 +221,11 @@ def cmd_sync(args: argparse.Namespace) -> None:
 
                 repo_id = cast(int, repo.get("id"))
                 client.sync_repo(int(repo_id))
-                print(f"Sync triggered for {args.name}", file=sys.stderr)
-                print(f"{args.name}", file=sys.stdout)
+
+                stderr_msg = f"Sync triggered for {args.name}"
+                stdout_msg = f"{args.name}"
+
+                print_success(args, stderr_msg, stdout_msg)
 
             except RepoNotFoundError as error:
                 print(f"Error: {error}", file=sys.stderr)
@@ -291,11 +298,10 @@ def cmd_import(args: argparse.Namespace) -> None:
             file=sys.stderr,
         )
 
-    print(
-        f"\nImport complete. Successfully queued {len(added)}/{len(lines)} repositories in one poll.",
-        file=sys.stderr,
-    )
-    print(f"{len(added)}/len{lines}", file=sys.stdout)
+    stderr_msg = f"\nImport complete. Successfully queued {len(added)}/{len(lines)} repositories in one poll."
+    stdout_msg = f"{len(added)}/{len(lines)}"
+
+    print_success(args, stderr_msg, stdout_msg)
 
 
 def main():
