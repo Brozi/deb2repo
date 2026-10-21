@@ -411,10 +411,10 @@ def main():
 
     args = parser.parse_args()
 
-    # if args.tui:
-    #     from deb2repo_client.tui import main as tui_main
-    #
-    #     sys.exit(tui_main())
+    if args.tui:
+        from deb2repo_client.tui import main as tui_main
+
+        sys.exit(tui_main())
 
     if not args.command:
         parser.print_help()
