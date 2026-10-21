@@ -305,6 +305,22 @@ def cmd_import(args: argparse.Namespace) -> None:
     print_success(args, stderr_msg, stdout_msg)
 
 
+def execute_command(args: argparse.Namespace) -> None:
+    """Routes the parsed command to the correct function."""
+    commands = {
+        "add": cmd_add,
+        "import": cmd_import,
+        "list": cmd_list,
+        "remove": cmd_remove,
+        "sync": cmd_sync,
+    }
+
+    if args.command in commands:
+        raise NotImplementedError(f"Command '{args.command}' is not implemented yet.")
+
+    commands[args.command](args)
+
+
 def main():
 
     parser = build_master_parser()
@@ -320,16 +336,11 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    if args.command == "add":
-        cmd_add(args)
-    elif args.command == "list":
-        cmd_list(args)
-    elif args.command == "import":
-        cmd_import(args)
-    elif args.command == "remove":
-        cmd_remove(args)
-    elif args.command == "sync":
-        cmd_sync(args)
+    try:
+        execute_command(args)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

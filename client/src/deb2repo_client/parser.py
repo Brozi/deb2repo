@@ -43,13 +43,7 @@ def build_remove_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def build_list_parser(subparsers: argparse._SubParsersAction) -> None:
     """Configures the 'list' subcommand"""
-    parser = subparsers.add_parser("list", help="List tracked repos")
-    parser.add_argument(
-        "-s",
-        "--scripting",
-        help="Output in a scripting-friendly format",
-        action="store_true",
-    )
+    subparsers.add_parser("list", help="List tracked repos")
 
 
 def build_sync_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -99,6 +93,13 @@ def build_master_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Deb2repo CLI client for interacting with the APT repo."
     )
+    parser.add_argument(
+        "-s",
+        "--scripting",
+        action="store_true",
+        help="Output in a scripting-friendly format",
+    )
+
     subparsers = parser.add_subparsers(dest="command")
 
     build_add_parser(subparsers)
