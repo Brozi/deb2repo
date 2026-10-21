@@ -113,7 +113,7 @@ def cmd_remove(args: argparse.Namespace) -> None:
                     )
                 else:
                     if not confirm_action(
-                        f"Exact match for '{args.name}' not found. Did you mean '{full_name}'? [y/N]: "
+                        f"Exact match for '{args.name}' not found. Did you mean '{full_name}'?"
                     ):
                         print("Operation aborted", file=sys.stderr)
                         sys.exit(1)
@@ -210,7 +210,7 @@ def cmd_sync(args: argparse.Namespace) -> None:
                         )
                     else:
                         if not confirm_action(
-                            f"Exact match for '{args.name}' not found. Did you mean '{full_name}'? [y/N]: "
+                            f"Exact match for '{args.name}' not found. Did you mean '{full_name}'?"
                         ):
                             print("Operation aborted", file=sys.stderr)
                             sys.exit(1)
