@@ -26,7 +26,10 @@ def load_config() -> dict[str, str]:
                     api_url = api_url or data.get("url") or "http://127.0.0.1:8889"
                     token = token or data.get("token")
             except json.JSONDecodeError:
-                print(f"Error: Malformed JSON configuration file at {CONFIG_FILE}")
+                print(
+                    f"Error: Malformed JSON configuration file at {CONFIG_FILE}",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
             except Exception as e:
                 print(f"Unexpected error reading configuration: {e}", file=sys.stderr)
@@ -75,7 +78,12 @@ def cmd_add(args: argparse.Namespace) -> None:
 
         repo = result_data.get("repo_name")
 
-        print(f"Success: Added {owner}/{repo} to the build queue for '{args.distro}'")
+        print(
+            f"Success: Added {owner}/{repo} to the build queue for '{args.distro}'",
+            file=sys.stderr,
+        )
+        # Print the added url to stdout for scripting
+        print(args.url)
     except (ValueError, APIError) as error:
         print(f"Error: {error}", file=sys.stderr)
         sys.exit(1)
@@ -99,7 +107,8 @@ def cmd_remove(args: argparse.Namespace) -> None:
 
                 if args.no_confirm:
                     print(
-                        f"Notice: Using partial match '{full_name}' (--no-prompt passed)."
+                        f"Notice: Using partial match '{full_name}' (--no-prompt passed).",
+                        file=sys.stderr,
                     )
                 else:
                     choice = (
@@ -110,30 +119,37 @@ def cmd_remove(args: argparse.Namespace) -> None:
                         .lower()
                     )
                     if choice not in ("", "y", "yes"):
-                        print("Operation aborted")
+                        print("Operation aborted", file=sys.stderr)
                         sys.exit(1)
 
             repo_id = cast(int, repo.get("id"))
             result: dict[str, Any] = client.remove_repo(int(repo_id))
             result_data = cast(dict[str, Any], result.get("data", {}))
 
+            host = result_data.get("host")
             owner = result_data.get("owner")
             repo = result_data.get("repo_name")
             removed_count = result_data.get("removed_files_count", 0)
             print(
-                f"Success: Removed {owner}/{repo} from tracking. {removed_count} associated files were deleted."
+                f"Success: Removed {host}/{owner}/{repo} from tracking. {removed_count} associated files were deleted.",
+                file=sys.stderr,
             )
+            print(f"https://{host}/{owner}/{repo}", file=sys.stdout)
 
         except RepoNotFoundError as error:
-            print(f"Error: {error}")
+            print(f"Error: {error}", file=sys.stderr)
             sys.exit(1)
         except AmbiguousRepoError as error:
-            print(f"Error: {error}")
-            print("Use --distro and/or --host to disambiguate. Available options:")
+            print(f"Error: {error}", file=sys.stderr)
+            print(
+                "Use --distro and/or --host to disambiguate. Available options:",
+                file=sys.stderr,
+            )
 
             for r in error.matches:
                 print(
-                    f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')}"
+                    f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')}",
+                    file=sys.stderr,
                 )
             sys.exit(1)
 
@@ -147,10 +163,13 @@ def cmd_list(args: argparse.Namespace) -> None:
     try:
         repos = client.list_repos()
         if not repos:
-            print("No packages are currently being tracked")
+            print("No packages are currently being tracked", file=sys.stderr)
             return
-        print(f"{'PACKAGE':<25} {'LAST TAG':<15} {'DISTRO':<15} {'SOURCE':<40}")
-        print("-" * 95)
+        print(
+            f"{'PACKAGE':<25} {'LAST TAG':<15} {'DISTRO':<15} {'SOURCE':<40}",
+            file=sys.stdout,
+        )
+        print("-" * 95, file=sys.stdout)
         for tracked_repo in repos:
             distro = tracked_repo.get("distro") or "N/A"
             packages = tracked_repo.get("packages") or ["Pending first sync"]
@@ -163,7 +182,10 @@ def cmd_list(args: argparse.Namespace) -> None:
             )
 
             for package_name in packages:
-                print(f"{package_name:<25} {last_tag:<15} {distro:<15} {source:<40}")
+                print(
+                    f"{package_name:<25} {last_tag:<15} {distro:<15} {source:<40}",
+                    file=sys.stdout,
+                )
 
     except APIError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -187,7 +209,8 @@ def cmd_sync(args: argparse.Namespace) -> None:
 
                     if args.no_confirm:
                         print(
-                            f"Notice: Using partial match '{full_name}' (--no-prompt passed)."
+                            f"Notice: Using partial match '{full_name}' (--no-prompt passed).",
+                            file=sys.stderr,
                         )
                     else:
                         choice = (
@@ -198,29 +221,34 @@ def cmd_sync(args: argparse.Namespace) -> None:
                             .lower()
                         )
                         if choice not in ("", "y", "yes"):
-                            print("Operation aborted")
+                            print("Operation aborted", file=sys.stderr)
                             sys.exit(1)
 
                 repo_id = cast(int, repo.get("id"))
                 client.sync_repo(int(repo_id))
-                print(f"Sync triggered for {args.name}")
+                print(f"Sync triggered for {args.name}", file=sys.stderr)
+                print(f"{args.name}", file=sys.stdout)
 
             except RepoNotFoundError as error:
-                print(f"Error: {error}")
+                print(f"Error: {error}", file=sys.stderr)
                 sys.exit(1)
             except AmbiguousRepoError as error:
-                print(f"Error: {error}")
-                print("Use --distro and/or --host to disambiguate. Available options:")
+                print(f"Error: {error}", file=sys.stderr)
+                print(
+                    "Use --distro and/or --host to disambiguate. Available options:",
+                    file=sys.stderr,
+                )
 
                 for r in error.matches:
                     print(
-                        f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')}"
+                        f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')}",
+                        file=sys.stderr,
                     )
                 sys.exit(1)
 
         else:
             client.sync_all()
-            print("Sync triggered for all repos")
+            print("Sync triggered for all repos", file=sys.stderr)
 
     except (ValueError, APIError) as error:
         print(f"Error: {error}", file=sys.stderr)
@@ -242,7 +270,10 @@ def cmd_import(args: argparse.Namespace) -> None:
         print("Fatal: The provided file is empty.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Starting import of {len(lines)} repositories for '{args.distro}'...")
+    print(
+        f"Starting import of {len(lines)} repositories for '{args.distro}'...",
+        file=sys.stderr,
+    )
 
     try:
         result = client.import_repos(lines, args.distro)
@@ -257,19 +288,23 @@ def cmd_import(args: argparse.Namespace) -> None:
     for repo in added:
         print(
             f"Queued {repo.get('owner', 'unknown')}/"
-            f"{repo.get('repo_name', 'unknown')}"
+            f"{repo.get('repo_name', 'unknown')}",
+            file=sys.stderr,
         )
 
     for repo in skipped:
         print(
             f"Skipped {repo.get('owner', 'unknown')} for "
             f"{repo.get('distro', 'unknown')}: "
-            f"{repo.get('reason', 'unknown reason')}"
+            f"{repo.get('reason', 'unknown reason')}",
+            file=sys.stderr,
         )
 
     print(
-        f"\nImport complete. Successfully queued {len(added)}/{len(lines)} repositories in one poll."
+        f"\nImport complete. Successfully queued {len(added)}/{len(lines)} repositories in one poll.",
+        file=sys.stderr,
     )
+    print(f"{len(added)}/len{lines}", file=sys.stdout)
 
 
 def main():
