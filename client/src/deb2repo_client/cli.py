@@ -315,7 +315,7 @@ def execute_command(args: argparse.Namespace) -> None:
         "sync": cmd_sync,
     }
 
-    if args.command in commands:
+    if args.command not in commands:
         raise NotImplementedError(f"Command '{args.command}' is not implemented yet.")
 
     commands[args.command](args)
