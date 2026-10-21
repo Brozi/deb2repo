@@ -7,6 +7,7 @@ from typing import Any, cast
 
 from deb2repo_client.core import APIError, RepoClient
 from deb2repo_client.exceptions import AmbiguousRepoError, RepoNotFoundError
+from deb2repo_client.parser import build_master_parser
 from deb2repo_client.utils import confirm_action, print_success
 
 CONFIG_FILE = Path.home() / ".config" / "deb2repo" / "config.json"
@@ -305,109 +306,8 @@ def cmd_import(args: argparse.Namespace) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Deb2repo CLI client for interacting with the APT repo."
-    )
 
-    # parser.add_argument(
-    #     "-t", "--tui", action="store_true", help="Launch the TUI client"
-    # )
-
-    subparsers = parser.add_subparsers(dest="command")
-
-    add_parser = subparsers.add_parser(
-        "add", help="Add a new repo to the tracking database"
-    )
-    add_parser.add_argument("url", help="Repository URL")
-    add_parser.add_argument("-d", "--distro", required=True, help="Target distribution")
-    add_parser.add_argument(
-        "-p",
-        "--package",
-        help="Explicitly name the package to track. None tracks all.",
-    )
-    add_parser.set_defaults(func=cmd_add)
-
-    import_parser = subparsers.add_parser(
-        "import", help="Bulk import repositories from a text file"
-    )
-    import_parser.add_argument(
-        "file", help="Path to the text file containing repository URLs"
-    )
-    import_parser.add_argument(
-        "-d",
-        "--distro",
-        required=True,
-        help="Target distribution for all imported repositories.",
-    )
-    import_parser.set_defaults(func=cmd_import)
-
-    list_parser = subparsers.add_parser("list", help="List tracked repos")
-
-    list_parser.add_argument(
-        "-s",
-        "--scripting",
-        help="Output in a scripting-friendly format",
-        action="store_true",
-    )
-
-    remove_parser = subparsers.add_parser(
-        "remove", help="Remove the repo from tracking and delete associated files"
-    )
-
-    remove_parser.add_argument(
-        "name", help="Repository name to sync (e.g., 'bat', or 'sharkdp/bat')."
-    )
-
-    remove_parser.add_argument(
-        "-d",
-        "--distro",
-        help="Disambiguate when the same repo is tracked for multiple distros.",
-    )
-
-    remove_parser.add_argument(
-        "-H",
-        "--host",
-        help="Disambiguate when the same repo is tracked from multiple hosts (e.g., github.com, gitlab.com).",
-    )
-    remove_parser.add_argument(
-        "--no-confirm",
-        "-n",
-        action="store_true",
-        help="Disable interactive prompts, and auto-accept partial matches. Use with caution.",
-    )
-
-    remove_parser.set_defaults(func=cmd_remove)
-
-    sync_parser = subparsers.add_parser(
-        "sync", help="Trigger a polling cycle for a given repo, or all repos by default"
-    )
-
-    sync_parser.add_argument(
-        "name",
-        nargs="?",
-        help="Repository name to sync (e.g., 'bat', or 'sharkdp/bat'). Omit to sync all.",
-    )
-
-    sync_parser.add_argument(
-        "-d",
-        "--distro",
-        help="Disambiguate when the same repo is tracked for multiple distros.",
-    )
-
-    sync_parser.add_argument(
-        "-H",
-        "--host",
-        help="Disambiguate when the same repo is tracked from multiple hosts (e.g., github.com, gitlab.com).",
-    )
-
-    sync_parser.add_argument(
-        "--no-confirm",
-        "-n",
-        action="store_true",
-        help="Disable interactive prompts, and auto-accept partial matches. Use with caution.",
-    )
-
-    sync_parser.set_defaults(func=cmd_sync)
+    parser = build_master_parser()
 
     args = parser.parse_args()
 
