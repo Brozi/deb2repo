@@ -88,6 +88,11 @@ def build_import_parser(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
+def build_tui_parser(subparsers: argparse._SubParsersAction) -> None:
+    """Configures the 'tui' subcommand"""
+    subparsers.add_parser("tui", help="Launch the text-based user interface")
+
+
 def build_master_parser() -> argparse.ArgumentParser:
     """Builds the root argument parser and attaches all commands"""
     parser = argparse.ArgumentParser(
@@ -107,5 +112,6 @@ def build_master_parser() -> argparse.ArgumentParser:
     build_list_parser(subparsers)
     build_sync_parser(subparsers)
     build_import_parser(subparsers)
+    build_tui_parser(subparsers)
 
     return parser

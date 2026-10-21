@@ -327,7 +327,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.tui:
+    if args.command == "tui":
         from deb2repo_client.tui import main as tui_main
 
         sys.exit(tui_main())
