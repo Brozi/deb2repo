@@ -148,7 +148,7 @@ def cmd_remove(args: argparse.Namespace) -> None:
 
             for r in error.matches:
                 print(
-                    f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')}",
+                    f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')})",
                     file=sys.stderr,
                 )
             sys.exit(1)
@@ -241,7 +241,7 @@ def cmd_sync(args: argparse.Namespace) -> None:
 
                 for r in error.matches:
                     print(
-                        f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')}",
+                        f"  ID {r.get('id')}: {r.get('host')}/{r.get('owner')}/{r.get('repo_name')} (distro: {r.get('distro')})",
                         file=sys.stderr,
                     )
                 sys.exit(1)
