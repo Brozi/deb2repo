@@ -1,9 +1,9 @@
 import argparse
 import sys
-from typing import Any, cast
 from pathlib import Path
+from typing import Any, cast
 
-from deb2repo_client.cli import get_client
+from deb2repo_client.config import get_client
 from deb2repo_client.core import APIError, RepoClient
 from deb2repo_client.exceptions import AmbiguousRepoError, RepoNotFoundError
 from deb2repo_client.utils import confirm_action, print_success
