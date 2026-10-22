@@ -6,7 +6,7 @@ from pathlib import Path
 from deb2repo_client.core import RepoClient
 
 CONFIG_FILE = Path.home() / ".config" / "deb2repo" / "config.json"
-DEFAULT_CONFIG = {"url": "127.0.0.1:8889", "token": ""}
+DEFAULT_CONFIG = {"url": "http://127.0.0.1:8889", "token": ""}
 
 
 def load_config() -> dict[str, str]:
