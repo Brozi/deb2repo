@@ -43,7 +43,8 @@ def build_remove_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def build_list_parser(subparsers: argparse._SubParsersAction) -> None:
     """Configures the 'list' subcommand"""
-    subparsers.add_parser("list", help="List tracked repos")
+    parser = subparsers.add_parser("list", help="List tracked repos")
+    parser.add_argument("-d", "--distro", help="Filter the list by the chosen distro")
 
 
 def build_sync_parser(subparsers: argparse._SubParsersAction) -> None:

@@ -109,6 +109,10 @@ def cmd_list(args: argparse.Namespace) -> None:
             file=sys.stdout,
         )
         print("-" * 95, file=sys.stdout)
+
+        if args.distro:
+            repos = [repo for repo in repos if repo.get("distro") == args.distro]
+
         for tracked_repo in repos:
             distro = tracked_repo.get("distro") or "N/A"
             packages = tracked_repo.get("packages") or ["Pending first sync"]
