@@ -32,6 +32,10 @@ def load_config() -> dict[str, str]:
             sys.exit(1)
     else:
         api_url, token = write_config(DEFAULT_HOST, DEFAULT_TOKEN)
+        print(
+            f"Created empty configuration file template at {CONFIG_FILE}. Please use repo-cli login to login",
+            file=sys.stderr,
+        )
 
     if not api_url or not token:
         print("Fatal: Missing credentials.", file=sys.stderr)
@@ -59,10 +63,6 @@ def write_config(host: str, token: str) -> tuple[str, str]:
 
         with open(CONFIG_FILE, "w") as f:
             json.dump(DEFAULT_CONFIG, f, indent=4)
-        print(
-            f"Created empty configuration file template at {CONFIG_FILE}. Please use repo-cli login to login",
-            file=sys.stderr,
-        )
 
         CONFIG_FILE.chmod(0o600)
 
