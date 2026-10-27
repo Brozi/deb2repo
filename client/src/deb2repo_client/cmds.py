@@ -108,7 +108,7 @@ def cmd_list(args: argparse.Namespace) -> None:
             f"{'PACKAGE':<25} {'LAST TAG':<15} {'DISTRO':<15} {'SOURCE':<40}",
             file=sys.stdout,
         )
-        print("-" * 95, file=sys.stdout)
+        # print("-" * 95, file=sys.stdout)
 
         if args.distro:
             repos = [repo for repo in repos if repo.get("distro") == args.distro]
