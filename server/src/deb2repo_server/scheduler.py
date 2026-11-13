@@ -137,6 +137,8 @@ def run_polling_cycle(rebuild: bool = False, repo_id: int | None = None):
                     latest_tag, release_hash = poller.get_latest_tag(
                         repo.host, repo.owner, repo.repo_name
                     )
+
+                    latest_tag = latest_tag.replace("+", "-")
                     if latest_tag is None:
                         print(
                             f"No stable release tag for {repo.host}/{repo.owner}/{repo.repo_name}."

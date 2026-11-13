@@ -129,7 +129,7 @@ def get_latest_tag(host: str, owner: str, name: str) -> tuple[str | None, str | 
 
     for entry in feed.entries:
         raw_tag = entry["link"].split("/")[-1]
-        tag = unquote(raw_tag).replace("+", "-")
+        tag = unquote(raw_tag)
         updated_at = getattr(entry, "updated", None)
 
         if not unstable_tag_pattern or not unstable_tag_pattern.search(tag):
@@ -147,6 +147,7 @@ def get_latest_deb(
     tag, _ = get_latest_tag(host, owner, repo_name)
     if not tag:
         return
+    tag = tag.replace("+", "-")
 
     api_tag = quote(tag, safe="")
     api_url = f"https://api.{host}/repos/{owner}/{repo_name}/releases/tags/{api_tag}"
