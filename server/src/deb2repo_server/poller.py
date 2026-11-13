@@ -148,10 +148,8 @@ def get_latest_deb(
     if not tag:
         return
 
-    upstream_git_tag = quote(tag.replace("-", "+"), safe="")
-    api_url = (
-        f"https://api.{host}/repos/{owner}/{repo_name}/releases/tags/{upstream_git_tag}"
-    )
+    api_tag = quote(tag, safe="")
+    api_url = f"https://api.{host}/repos/{owner}/{repo_name}/releases/tags/{api_tag}"
 
     headers: dict[str, str] = {}
 
