@@ -147,9 +147,9 @@ def get_latest_deb(
     tag, _ = get_latest_tag(host, owner, repo_name)
     if not tag:
         return
+    api_tag = quote(tag, safe="")
     tag = tag.replace("+", "-")
 
-    api_tag = quote(tag, safe="")
     api_url = f"https://api.{host}/repos/{owner}/{repo_name}/releases/tags/{api_tag}"
 
     headers: dict[str, str] = {}
